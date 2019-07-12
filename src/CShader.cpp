@@ -41,7 +41,7 @@ const bool ShaderProgram::Compile()
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
      if(!success)
     {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
         return false;
     }
