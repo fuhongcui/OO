@@ -1,8 +1,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include "CTrace.h"
 #include "CShader.h"
 using namespace std;
+using namespace Namspace_Trace;
 
 const string VERTEX_SHADER =
 "#version 330 core \n"
@@ -40,6 +42,7 @@ int main()
         glfwTerminate();
         return -1;
     }
+    TraceLevel(LOG_INFO, "HAHAHAHAHAH %p", window);
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, WindowSizeCallback);
 
