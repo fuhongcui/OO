@@ -17,5 +17,6 @@ private:
     unsigned int m_ProgramID;
     std::string m_strVertex;
     std::string m_strFragment;
+    bool m_bHaveInit;
 };
 #endif

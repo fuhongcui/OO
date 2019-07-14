@@ -6,6 +6,7 @@ ShaderProgram::ShaderProgram(const std::string& v, const std::string& f)
 :m_strVertex(v)
 ,m_strFragment(f)
 ,m_ProgramID(0)
+,m_bHaveInit(false)
 {
 
 }
@@ -63,9 +64,13 @@ const bool ShaderProgram::Compile()
 
  const bool ShaderProgram::StartUse()
  {
-    if(!Compile())
+    if(!m_bHaveInit)
     {
-        return false;
+        if(!Compile())
+        {
+            return false;
+        }
+        m_bHaveInit = true;
     }
     glUseProgram(m_ProgramID);
     return true;
