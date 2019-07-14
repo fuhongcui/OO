@@ -17,7 +17,7 @@ ShaderProgram::~ShaderProgram()
 
 const bool ShaderProgram::Compile()
 {
-     const char* vertex_src = m_strVertex.c_str();
+    const char* vertex_src = m_strVertex.c_str();
     const char* fragment_src = m_strFragment.c_str();
     unsigned int vertexShader = 0;
     unsigned int fragmentShader = 0;
