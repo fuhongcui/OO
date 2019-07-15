@@ -11,17 +11,22 @@ using namespace Namspace_Trace;
 const string VERTEX_SHADER =
 "#version 330 core \n"
 "layout (location = 0) in vec3 aPos; \n"
+"layout (location = 1) in vec2 aTextureCoord; \n"
+"out vec2 TexCoord;"
 "void main() \n"
 "{ \n"
 "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0); \n"
+"   TexCoord = aTextureCoord; \n"
 "} \n"
 ; 
 const string FRAGMENT_SHADER =
 "#version 330 core \n"
 "out vec4 FragColor; \n"
+"in vec2 TexCoord; \n"
+"uniform sampler2D ourTexture; \n"
 "void main() \n"
 "{ \n"
-"    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f); \n"
+"    FragColor = texture(ourTexture, TexCoord); \n"
 "} \n" 
 ;
 
@@ -44,7 +49,6 @@ int main()
         glfwTerminate();
         return -1;
     }
-    TraceLevel(LOG_INFO, "HAHAHAHAHAH %p", window);
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, WindowSizeCallback);
 
@@ -61,9 +65,9 @@ int main()
     }
     float vertices[] = 
     {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.0f,  0.5f, 0.0f
+        -0.5f, -0.5f,0.0f,	0.0f,0.0f,
+        0.5f, -0.5f,0.0f,	1.0f,0.0f,
+        0.0f,  0.5f,0.0f,	0.5f,1.0f
     };
     unsigned int VBO;
     glGenBuffers(1, &VBO);
@@ -80,19 +84,39 @@ int main()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+    int width = 0;
+    int height = 0;
+    int nrChannels = 0;
+    const char* str = "./res/res.jpg";
+    unsigned char *data = stbi_load(str, &width, &height, &nrChannels, 0);
+    if(!data)
+    {
+        TraceLevel(LOG_ERROR, "Image load  failed, src=%s", str);
+        return -1;
+    }
+    unsigned int TextureA;
+    glGenTextures(1, &TextureA);
+    glBindTexture(GL_TEXTURE_2D, TextureA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(data);
+
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
 
     glBindVertexArray(VAO);
+    glBindTexture(GL_TEXTURE_2D, TextureA);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBindVertexArray(0);
 
     while (!glfwWindowShouldClose(window))
     {
-		UserInput(window);
+	UserInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glBindVertexArray(VAO);

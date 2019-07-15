@@ -139,7 +139,7 @@ void CTrace::Trace(LogLevel Level, const char* format, ...)
 		{
 			ToFile(str);
 		}
-		std::cout << str;
+		std::cout << str << std::endl;
 	}
 	
 }
