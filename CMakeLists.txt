@@ -4,11 +4,11 @@ project(Main)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
-include_directories(include external/glad/include external/glfw/include)
+include_directories(include external/glad/include external/glfw/include external/stb_image/include)
 
 aux_source_directory(src MAIN_SRC_FILE)
-
 aux_source_directory(external/glad/src MAIN_SRC_FILE)
+aux_source_directory(external/stb_image/src MAIN_SRC_FILE)
 
 if (WIN32)
 link_directories(external/glfw/lib/win32)

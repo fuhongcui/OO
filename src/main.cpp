@@ -1,8 +1,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <stb_image.h>
 #include <iostream>
 #include "CTrace.h"
 #include "CShader.h"
+
 using namespace std;
 using namespace Namspace_Trace;
 
