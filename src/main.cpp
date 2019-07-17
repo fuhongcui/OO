@@ -34,7 +34,7 @@ void WindowSizeCallback(GLFWwindow* window, int width, int height);
 void UserInput(GLFWwindow *window);
 
 const unsigned int WINDOW_WIDTH = 1280;
-const unsigned int WINDOW_HEIGHT = 480;
+const unsigned int WINDOW_HEIGHT = 640;
 
 int main()
 {
@@ -104,8 +104,21 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
+    if(nrChannels == 3)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else if(nrChannels == 4)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+         TraceLevel(LOG_ERROR, "Image bit = %d", nrChannels);
+    }
+    
     stbi_image_free(data);
 
     unsigned int VAO;
