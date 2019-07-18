@@ -11,6 +11,7 @@ public:
     ShaderProgram& operator = (const ShaderProgram& rObj) = delete;
 public:
     const bool StartUse();
+    void SetIntValue(const std::string& strName, int iValue);
 private:
     const bool Compile();
 private:

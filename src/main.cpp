@@ -23,18 +23,19 @@ const string FRAGMENT_SHADER =
 "#version 330 core \n"
 "out vec4 FragColor; \n"
 "in vec2 TexCoord; \n"
-"uniform sampler2D ourTexture; \n"
+"uniform sampler2D TextureA; \n"
+"uniform sampler2D TextureB; \n"
 "void main() \n"
 "{ \n"
-"    FragColor = texture(ourTexture, TexCoord); \n"
+"   FragColor = mix(texture(TextureA, TexCoord), texture(TextureB, TexCoord), 0.2); \n"
 "} \n" 
 ;
 
 void WindowSizeCallback(GLFWwindow* window, int width, int height);
 void UserInput(GLFWwindow *window);
 
-const unsigned int WINDOW_WIDTH = 1280;
-const unsigned int WINDOW_HEIGHT = 640;
+const unsigned int WINDOW_WIDTH = 800;
+const unsigned int WINDOW_HEIGHT = 600;
 
 int main()
 {
@@ -63,12 +64,14 @@ int main()
         glfwTerminate();
         return -1;
     }
+    MyShaderProgram.SetIntValue("TextureA", 0);
+    MyShaderProgram.SetIntValue("TextureB", 1);
     float vertices[] = 
     {
-        -1.0f, -1.0f,0.0f,	0.0f,0.0f,
-        1.0f, -1.0f,0.0f,	1.0f,0.0f,
-        1.0f, 1.0f,0.0f,	1.0f,1.0f,
-        -1.0f, 1.0f,0.0f,	0.0f,1.0f
+        -0.5f, -0.5f,0.0f,	0.0f,0.0f,
+        0.5f, -0.5f,0.0f,	1.0f,0.0f,
+        0.5f, 0.5f,0.0f,	1.0f,1.0f,
+        -0.5f, 0.5f,0.0f,	0.0f,1.0f
     };
     unsigned int VBO;
     glGenBuffers(1, &VBO);
@@ -89,12 +92,13 @@ int main()
     int width = 0;
     int height = 0;
     int nrChannels = 0;
-    const char* str = "./res/res.jpg";
+    //TextureA
+    const char* strTextureA = "./res/res.jpg";
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *data = stbi_load(str, &width, &height, &nrChannels, 0);
-    if(!data)
+    unsigned char *dataTextureA = stbi_load(strTextureA, &width, &height, &nrChannels, 0);
+    if(!dataTextureA)
     {
-        TraceLevel(LOG_ERROR, "Image load  failed, src=%s", str);
+        TraceLevel(LOG_ERROR, "Image load  failed, src=%s", strTextureA);
         return -1;
     }
     unsigned int TextureA;
@@ -106,32 +110,69 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     if(nrChannels == 3)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, dataTextureA);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else if(nrChannels == 4)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, dataTextureA);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
          TraceLevel(LOG_ERROR, "Image bit = %d", nrChannels);
     }
-    
-    stbi_image_free(data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    stbi_image_free(dataTextureA);
+    //TextureB
+    const char* strTextureB = "./res/res.png";
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char *dataTextureB = stbi_load(strTextureB, &width, &height, &nrChannels, 0);
+    if(!dataTextureB)
+    {
+        TraceLevel(LOG_ERROR, "Image load  failed, src=%s", dataTextureB);
+        return -1;
+    }
+    unsigned int TextureB;
+    glGenTextures(1, &TextureB);
+    glBindTexture(GL_TEXTURE_2D, TextureB);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if(nrChannels == 3)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, dataTextureB);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else if(nrChannels == 4)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, dataTextureB);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+         TraceLevel(LOG_ERROR, "Image bit = %d", nrChannels);
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    stbi_image_free(dataTextureB);
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
 
     glBindVertexArray(VAO);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, TextureA);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, TextureB);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glActiveTexture(GL_TEXTURE0);
+
     glBindVertexArray(0);
 
     while (!glfwWindowShouldClose(window))

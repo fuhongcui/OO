@@ -75,3 +75,8 @@ const bool ShaderProgram::Compile()
     glUseProgram(m_ProgramID);
     return true;
  }
+ void ShaderProgram::SetIntValue(const std::string& strName, int iValue)
+ {
+    int iLocation = glGetUniformLocation(m_ProgramID, strName.c_str());
+    glUniform1i(iLocation, iValue);
+ }
