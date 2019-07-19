@@ -1,4 +1,5 @@
-#include <cmath>
+#ifndef _CACULATE_H_
+#define _CACULATE_H_
 struct PointCoord
 {
 	float x;
@@ -9,4 +10,6 @@ struct LineCoord
 	PointCoord stPointA;
 	PointCoord stPointB;
 };
-static void DoGetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, PointCoord& stPointProject, bool& bInSection);
+void GetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, PointCoord& stPointProject, bool& bInSection);
+
+#endif

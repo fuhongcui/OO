@@ -1,5 +1,7 @@
+#include <algorithm>
+#include <cmath>
 #include "Caculate.h"
-void DoGetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, PointCoord& stPointProject, bool& bInSection)
+void GetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, PointCoord& stPointProject, bool& bInSection)
 {
 	PointCoord stPointA = stLine.stPointA;
 	PointCoord stPointB = stLine.stPointB;
@@ -12,7 +14,6 @@ void DoGetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, Poin
 		{
 			bInSection = true;
 		}
-		return;
 	}
 	else if(fabs(stPointB.y - stPointA.y) < 0.0000001)
 	{
@@ -22,7 +23,6 @@ void DoGetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, Poin
 		{
 			bInSection = true;
 		}
-		return;
 	}
 	else
 	{
@@ -40,7 +40,6 @@ void DoGetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, Poin
 			{
 				bInSection = true;
 			}
-			return;
 		}
 		stPointProject.x = (b2 - b1) / (k1 -k2);
 		stPointProject.y = ((b2 - b1) / (k1 -k2)) * k1 + b1;
@@ -49,5 +48,4 @@ void DoGetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, Poin
 			bInSection = true;
 		}
 	}
-	
 }

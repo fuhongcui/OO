@@ -7,7 +7,7 @@
 #include <iostream>
 #include "CTrace.h"
 #include "CShader.h"
-
+#include "Caculate.h"
 using namespace std;
 using namespace Namspace_Trace;
 
