@@ -36,7 +36,7 @@ void DoGetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, Poin
 		{
 			stPointProject.x = stPointC.x;
 			stPointProject.y = stPointC.y;
-			if((stPointC.x >= min(stPointA.x, stPointB.x) && stPointC.x <= max(stPointA.x, stPointB.x)) && (stPointC.y >= min(stPointA.y, stPointB.y) && stPointC.y <= max(stPointA.y, stPointB.y)))
+			if((stPointC.x >= std::min(stPointA.x, stPointB.x) && stPointC.x <= std::max(stPointA.x, stPointB.x)) && (stPointC.y >= std::min(stPointA.y, stPointB.y) && stPointC.y <= std::max(stPointA.y, stPointB.y)))
 			{
 				bInSection = true;
 			}
@@ -44,7 +44,7 @@ void DoGetProjectPoint(const LineCoord& stLine, const PointCoord& stPointC, Poin
 		}
 		stPointProject.x = (b2 - b1) / (k1 -k2);
 		stPointProject.y = ((b2 - b1) / (k1 -k2)) * k1 + b1;
-		if((stPointProject.x >= min(stPointA.x, stPointB.x) && stPointProject.x <= max(stPointA.x, stPointB.x)) && (stPointProject.y >= min(stPointA.y, stPointB.y) && stPointProject.y <= max(stPointA.y, stPointB.y)))
+		if((stPointProject.x >= std::min(stPointA.x, stPointB.x) && stPointProject.x <= std::max(stPointA.x, stPointB.x)) && (stPointProject.y >= std::min(stPointA.y, stPointB.y) && stPointProject.y <= std::max(stPointA.y, stPointB.y)))
 		{
 			bInSection = true;
 		}
