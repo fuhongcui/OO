@@ -133,9 +133,25 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         glm::mat4 modelMatrix(1.0);
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(45.f), glm::vec3(0.f, 0.f, 1.f));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians((float)glfwGetTime() * 60.f), glm::vec3(0.f, 0.f, 1.f));
+        modelMatrix = glm::scale(modelMatrix, glm::vec3(2.f, 2.f, 2.f));
+
         glm::mat4 viewMatrix(1.0);
+        //z
+        glm::vec3 cameraPos = glm::vec3(0.f, -10.f, 10.f);
+        glm::vec3 cameraTarget = glm::vec3(0.f, 0.f, 0.f);
+        glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+        //x
+        glm::vec3 up = glm::vec3(0.f, 0.f, 1.f);
+        glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+        //y
+        glm::vec3 cameraUP = glm::normalize(glm::cross(cameraDirection, cameraRight));
+
+        viewMatrix = glm::lookAt(cameraPos, cameraTarget, up);
+
         glm::mat4 projectMatrix(1.0);
+        projectMatrix = glm::perspective(glm::radians(45.f), float(WINDOW_WIDTH / WINDOW_HEIGHT), 0.001f, 10000.f);
+
         MyShaderProgram.SetMatrixValue("modelMatrix", glm::value_ptr(modelMatrix));
         MyShaderProgram.SetMatrixValue("viewMatrix", glm::value_ptr(viewMatrix));
         MyShaderProgram.SetMatrixValue("projectMatrix", glm::value_ptr(projectMatrix));
