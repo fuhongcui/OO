@@ -10,10 +10,11 @@ public:
     ShaderProgram(const ShaderProgram& rObj) = delete;
     ShaderProgram& operator = (const ShaderProgram& rObj) = delete;
 public:
-    const bool StartUse();
+    bool StartUse();
     void SetIntValue(const std::string& strName, int iValue);
+    void SetMatrixValue(const std::string& strName, const float* fvalue);
 private:
-    const bool Compile();
+    bool Compile();
 private:
     unsigned int m_ProgramID;
     std::string m_strVertex;

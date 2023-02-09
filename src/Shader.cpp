@@ -1,11 +1,11 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
-#include "CShader.h"
+#include "Shader.h"
 ShaderProgram::ShaderProgram(const std::string& v, const std::string& f)
-:m_strVertex(v)
+:m_ProgramID(0)
+,m_strVertex(v)
 ,m_strFragment(f)
-,m_ProgramID(0)
 ,m_bHaveInit(false)
 {
 
@@ -16,7 +16,7 @@ ShaderProgram::~ShaderProgram()
     
 }
 
-const bool ShaderProgram::Compile()
+bool ShaderProgram::Compile()
 {
     const char* vertex_src = m_strVertex.c_str();
     const char* fragment_src = m_strFragment.c_str();
@@ -26,23 +26,23 @@ const bool ShaderProgram::Compile()
     int  success = 0;
     char infoLog[512];
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertex_src, NULL);
+    glShaderSource(vertexShader, 1, &vertex_src, nullptr);
     glCompileShader(vertexShader);
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if(!success)
     {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
         return false;
     }
 
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragment_src, NULL);
+    glShaderSource(fragmentShader, 1, &fragment_src, nullptr);
     glCompileShader(fragmentShader);
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
      if(!success)
     {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
         return false;
     }
@@ -53,7 +53,7 @@ const bool ShaderProgram::Compile()
     glGetProgramiv(m_ProgramID, GL_LINK_STATUS, &success);
     if(!success)
     {
-        glGetProgramInfoLog(m_ProgramID, 512, NULL, infoLog);
+        glGetProgramInfoLog(m_ProgramID, 512, nullptr, infoLog);
         std::cout << "ERROR::SHADER:::LINK_FAILED\n" << infoLog << std::endl;
         return false;
     }
@@ -62,7 +62,7 @@ const bool ShaderProgram::Compile()
     return true;
 }
 
- const bool ShaderProgram::StartUse()
+ bool ShaderProgram::StartUse()
  {
     if(!m_bHaveInit)
     {
@@ -79,4 +79,10 @@ const bool ShaderProgram::Compile()
  {
     int iLocation = glGetUniformLocation(m_ProgramID, strName.c_str());
     glUniform1i(iLocation, iValue);
+ }
+
+ void ShaderProgram::SetMatrixValue(const std::string& strName, const float* fvalue)
+ {
+     int iLocation = glGetUniformLocation(m_ProgramID, strName.c_str());
+     glUniformMatrix4fv(iLocation, 1, GL_FALSE, fvalue);
  }

@@ -5,40 +5,42 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
-#include "CTrace.h"
-#include "CShader.h"
-#include "Caculate.h"
+#include "Shader.h"
 using namespace std;
-using namespace Namspace_Trace;
 
 const string VERTEX_SHADER =
 "#version 330 core \n"
 "layout (location = 0) in vec3 aPos; \n"
 "layout (location = 1) in vec2 aTextureCoord; \n"
+"uniform mat4 modelMatrix; \n"
+"uniform mat4 viewMatrix; \n"
+"uniform mat4 projectMatrix; \n"
 "out vec2 TexCoord;"
 "void main() \n"
 "{ \n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0); \n"
+"   gl_Position = projectMatrix * viewMatrix * modelMatrix * vec4(aPos.x, aPos.y, aPos.z, 1.0); \n"
 "   TexCoord = aTextureCoord; \n"
 "} \n"
-; 
+;
 const string FRAGMENT_SHADER =
 "#version 330 core \n"
 "out vec4 FragColor; \n"
 "in vec2 TexCoord; \n"
-"uniform sampler2D TextureA; \n"
-"uniform sampler2D TextureB; \n"
+"uniform sampler2D Texture; \n"
 "void main() \n"
 "{ \n"
-"   FragColor = mix(texture(TextureA, TexCoord), texture(TextureB, TexCoord), 0.2); \n"
-"} \n" 
+"   FragColor = texture(Texture, TexCoord); \n"
+"} \n"
 ;
 
 void WindowSizeCallback(GLFWwindow* window, int width, int height);
 void UserInput(GLFWwindow *window);
 
-const unsigned int WINDOW_WIDTH = 800;
-const unsigned int WINDOW_HEIGHT = 600;
+const unsigned int WINDOW_WIDTH = 1280;
+const unsigned int WINDOW_HEIGHT = 720;
+
+
+
 
 int main()
 {
@@ -58,30 +60,29 @@ int main()
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-		glfwTerminate();
+        glfwTerminate();
         return -1;
-    }    
+    }
     ShaderProgram MyShaderProgram(VERTEX_SHADER, FRAGMENT_SHADER);
     if(!MyShaderProgram.StartUse())
     {
         glfwTerminate();
         return -1;
     }
-    MyShaderProgram.SetIntValue("TextureA", 0);
-    MyShaderProgram.SetIntValue("TextureB", 1);
-    float vertices[] = 
+    MyShaderProgram.SetIntValue("Texture", 0);
+    float vertices[] =
     {
-        -0.5f, -0.5f,0.0f,	0.0f,0.0f,
-        0.5f, -0.5f,0.0f,	1.0f,0.0f,
-        0.5f, 0.5f,0.0f,	1.0f,1.0f,
-        -0.5f, 0.5f,0.0f,	0.0f,1.0f
+        -1.0f, -1.0f,0.0f,	0.0f,0.0f,
+        1.0f, -1.0f,0.0f,	1.0f,0.0f,
+        1.0f, 1.0f,0.0f,	1.0f,1.0f,
+        -1.0f, 1.0f,0.0f,	0.0f,1.0f
     };
     unsigned int VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    unsigned int indices[] = 
+    unsigned int indices[] =
     {
         0, 1, 2,
         0, 2, 3
@@ -95,104 +96,64 @@ int main()
     int width = 0;
     int height = 0;
     int nrChannels = 0;
-    //TextureA
-    const char* strTextureA = "./res/res.jpg";
+    //Texture
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *dataTextureA = stbi_load(strTextureA, &width, &height, &nrChannels, 0);
-    if(!dataTextureA)
+    unsigned char *dataTexture = stbi_load("./res/1.png", &width, &height, &nrChannels, 0);
+    if(!dataTexture)
     {
-        TraceLevel(LOG_ERROR, "Image load  failed, src=%s", strTextureA);
         return -1;
     }
-    unsigned int TextureA;
-    glGenTextures(1, &TextureA);
-    glBindTexture(GL_TEXTURE_2D, TextureA);
+    unsigned int Texture;
+    glGenTextures(1, &Texture);
+    glBindTexture(GL_TEXTURE_2D, Texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if(nrChannels == 3)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, dataTextureA);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else if(nrChannels == 4)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, dataTextureA);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-         TraceLevel(LOG_ERROR, "Image bit = %d", nrChannels);
-    }
+    glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, width, height, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, dataTexture);
+    glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
-    stbi_image_free(dataTextureA);
-    //TextureB
-    const char* strTextureB = "./res/res.png";
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char *dataTextureB = stbi_load(strTextureB, &width, &height, &nrChannels, 0);
-    if(!dataTextureB)
-    {
-        TraceLevel(LOG_ERROR, "Image load  failed, src=%s", dataTextureB);
-        return -1;
-    }
-    unsigned int TextureB;
-    glGenTextures(1, &TextureB);
-    glBindTexture(GL_TEXTURE_2D, TextureB);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if(nrChannels == 3)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, dataTextureB);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else if(nrChannels == 4)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, dataTextureB);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-         TraceLevel(LOG_ERROR, "Image bit = %d", nrChannels);
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    stbi_image_free(dataTextureB);
-
+    stbi_image_free(dataTexture);
+    //VAO
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
-
     glBindVertexArray(VAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, TextureA);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, TextureB);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glActiveTexture(GL_TEXTURE0);
-
     glBindVertexArray(0);
-
-    while (!glfwWindowShouldClose(window))
+    //render
+    while(!glfwWindowShouldClose(window))
     {
-	    UserInput(window);
+        UserInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        glm::mat4 modelMatrix(1.0);
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(45.f), glm::vec3(0.f, 0.f, 1.f));
+        glm::mat4 viewMatrix(1.0);
+        glm::mat4 projectMatrix(1.0);
+        MyShaderProgram.SetMatrixValue("modelMatrix", glm::value_ptr(modelMatrix));
+        MyShaderProgram.SetMatrixValue("viewMatrix", glm::value_ptr(viewMatrix));
+        MyShaderProgram.SetMatrixValue("projectMatrix", glm::value_ptr(projectMatrix));
+
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, Texture);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
         glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+    //clean
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
-    glDeleteTextures(1, &TextureA);
+    glDeleteTextures(1, &Texture);
 
     glfwTerminate();
     return 0;
@@ -201,11 +162,11 @@ int main()
 
 void UserInput(GLFWwindow *window)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-	{
-		glfwSetWindowShouldClose(window, true);
-	}
-        
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, true);
+    }
+
 }
 
 void WindowSizeCallback(GLFWwindow* window, int width, int height)
@@ -214,4 +175,4 @@ void WindowSizeCallback(GLFWwindow* window, int width, int height)
 }
 
 
-   
+
