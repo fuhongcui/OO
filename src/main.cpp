@@ -6,6 +6,13 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include "Shader.h"
+
+#if defined(_WIN32)
+#define SEPERATOR ("\\")
+#else
+#define SEPERATOR ("/")
+#endif
+
 using namespace std;
 
 const string VERTEX_SHADER =
@@ -42,7 +49,7 @@ const unsigned int WINDOW_HEIGHT = 720;
 
 
 
-int main()
+int main(int argc, char* agrv[])
 {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -97,8 +104,17 @@ int main()
     int height = 0;
     int nrChannels = 0;
     //Texture
+    string texturePath = agrv[0];
+    auto dotPos = texturePath.find("Main");
+    if (dotPos != string::npos)
+    {
+        texturePath = texturePath.substr(0, dotPos);
+    }
+    texturePath += "res";
+    texturePath += SEPERATOR;
+    texturePath += "1.png";
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *dataTexture = stbi_load("./res/1.png", &width, &height, &nrChannels, 0);
+    unsigned char *dataTexture = stbi_load(texturePath.c_str(), &width, &height, &nrChannels, 0);
     if(!dataTexture)
     {
         return -1;

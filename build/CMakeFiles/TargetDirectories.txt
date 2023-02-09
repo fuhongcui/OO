@@ -1,3 +1,0 @@
-/home/cuifh/own/OO/build/CMakeFiles/Main.dir
-/home/cuifh/own/OO/build/CMakeFiles/edit_cache.dir
-/home/cuifh/own/OO/build/CMakeFiles/rebuild_cache.dir
