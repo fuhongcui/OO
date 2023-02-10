@@ -41,12 +41,13 @@ const string FRAGMENT_SHADER =
 ;
 
 void WindowSizeCallback(GLFWwindow* window, int width, int height);
+void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void UserInput(GLFWwindow *window);
 
 const unsigned int WINDOW_WIDTH = 1280;
 const unsigned int WINDOW_HEIGHT = 720;
 
-
+static float fov = 45.f;
 
 
 int main(int argc, char* agrv[])
@@ -64,6 +65,7 @@ int main(int argc, char* agrv[])
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, WindowSizeCallback);
+    glfwSetScrollCallback(window, ScrollCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -105,10 +107,10 @@ int main(int argc, char* agrv[])
     int nrChannels = 0;
     //Texture
     string texturePath = agrv[0];
-    auto dotPos = texturePath.find("Main");
+    auto dotPos = texturePath.find_last_of(SEPERATOR);
     if (dotPos != string::npos)
     {
-        texturePath = texturePath.substr(0, dotPos);
+        texturePath = texturePath.substr(0, dotPos + 1);
     }
     texturePath += "res";
     texturePath += SEPERATOR;
@@ -149,12 +151,12 @@ int main(int argc, char* agrv[])
         glClear(GL_COLOR_BUFFER_BIT);
 
         glm::mat4 modelMatrix(1.0);
-        modelMatrix = glm::rotate(modelMatrix, glm::radians((float)glfwGetTime() * 60.f), glm::vec3(0.f, 0.f, 1.f));
-        modelMatrix = glm::scale(modelMatrix, glm::vec3(2.f, 2.f, 2.f));
+//        modelMatrix = glm::rotate(modelMatrix, glm::radians((float)glfwGetTime() * 60.f), glm::vec3(0.f, 0.f, 1.f));
+//        modelMatrix = glm::scale(modelMatrix, glm::vec3(2.f, 2.f, 2.f));
 
         glm::mat4 viewMatrix(1.0);
         //z
-        glm::vec3 cameraPos = glm::vec3(0.f, -10.f, 10.f);
+        glm::vec3 cameraPos = glm::vec3(0.f, -2.f, 2.f);
         glm::vec3 cameraTarget = glm::vec3(0.f, 0.f, 0.f);
         glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
         //x
@@ -166,7 +168,15 @@ int main(int argc, char* agrv[])
         viewMatrix = glm::lookAt(cameraPos, cameraTarget, up);
 
         glm::mat4 projectMatrix(1.0);
-        projectMatrix = glm::perspective(glm::radians(45.f), float(WINDOW_WIDTH / WINDOW_HEIGHT), 0.001f, 10000.f);
+        projectMatrix = glm::perspective(glm::radians(fov), float(WINDOW_WIDTH / WINDOW_HEIGHT), 0.001f, 10000.f);
+
+        //test vertex
+        {
+            glm::vec4 testVertex = glm::vec4(0.f, 0.f, 0.f, 1.f);
+            glm::mat4 viewMatrixTest(1.0);
+            //move camera to origin
+            viewMatrixTest = glm::translate(viewMatrixTest, glm::normalize(glm::vec3(0.f, 0.f, 0.f) - cameraPos));
+        }
 
         MyShaderProgram.SetMatrixValue("modelMatrix", glm::value_ptr(modelMatrix));
         MyShaderProgram.SetMatrixValue("viewMatrix", glm::value_ptr(viewMatrix));
@@ -206,5 +216,13 @@ void WindowSizeCallback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-
+void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+  if(fov >= 1.0f && fov <= 45.0f)
+    fov -= yoffset;
+  if(fov <= 1.0f)
+    fov = 1.0f;
+  if(fov >= 45.0f)
+    fov = 45.0f;
+}
 
