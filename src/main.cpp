@@ -134,7 +134,7 @@ int main(int argc, char* agrv[])
     {
         UserInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 modelMatrix(1.0);
 //        modelMatrix = glm::rotate(modelMatrix, glm::radians((float)glfwGetTime() * 60.f), glm::vec3(0.f, 0.f, 1.f));
@@ -177,9 +177,9 @@ int main(int argc, char* agrv[])
             float r = 0.f + WINDOW_WIDTH;
             float b = 0.f + WINDOW_HEIGHT;
             float t = 0.f;
-            float n = -1.f;
+            float n = 0.f;
             float f = 1.f;
-            projectMatrix = glm::ortho(l, r, b, t, -1.f, 1.f);
+            projectMatrix = glm::ortho(l, r, b, t, n, f);
             auto Pxyz = [l, r, b, t, n, f](float x, float y, float z) -> PointCoord
             {
                 PointCoord oPoint;
@@ -198,7 +198,7 @@ int main(int argc, char* agrv[])
             };
 
 
-            PointCoord LB = Pxyz(0.f, 0.f, 0.f);
+            PointCoord LB = Pxyz(0.f, 0.f, -0.5f);
             PointCoord RB = Pxyz(1280.f, 0.f, 0.f);
             PointCoord RT = Pxyz(1280, 640.f, 0.f);
             PointCoord LT = Pxyz(0, 640.f, 0.f);
@@ -220,7 +220,7 @@ int main(int argc, char* agrv[])
             TextureCoord t;
             v.x = 0.f;
             v.y = 0.f;
-            v.z = 0.f;
+            v.z = -0.5f;
 
             t.u = 0.f;
             t.v = 1.f;
@@ -229,7 +229,7 @@ int main(int argc, char* agrv[])
 
             v.x = 1280.f;
             v.y = 0.f;
-            v.z = 0.f;
+            v.z = -0.5f;
 
             t.u = 1.f;
             t.v = 1.f;
@@ -238,7 +238,7 @@ int main(int argc, char* agrv[])
 
             v.x = 1280.f;
             v.y = 640.f;
-            v.z = 0.f;
+            v.z = -0.5f;
 
             t.u = 1.f;
             t.v = 0.f;
@@ -247,15 +247,15 @@ int main(int argc, char* agrv[])
 
             v.x = 0.f;
             v.y = 640.f;
-            v.z = 0.f;
+            v.z = -0.5f;
 
             t.u = 0.f;
             t.v = 0.f;
             vv.emplace_back(v);
             vt.emplace_back(t);
 
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LEQUAL);
+            //glEnable(GL_DEPTH_TEST);
+            //glDepthFunc(GL_GREATER);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, Texture);
 
@@ -274,7 +274,7 @@ int main(int argc, char* agrv[])
 
             glDrawArrays(GL_TRIANGLE_FAN, 0, vv.size());
 
-            modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f, 0.5f, -1.5f));
+            modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f, 0.5f, 0.5f));
             MyShaderProgram.SetMatrixValue("modelMatrix", glm::value_ptr(modelMatrix));
             glDrawArrays(GL_TRIANGLE_FAN, 0, vv.size());
 
