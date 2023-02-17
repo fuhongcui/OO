@@ -50,15 +50,37 @@ const unsigned int WINDOW_HEIGHT = 640;
 
 struct PointCoord
 {
+    PointCoord()
+        :x(0.f), y(0.f), z(0.f)
+    {
+
+    }
+    PointCoord(float x, float y, float z)
+        :x(x), y(y), z(z)
+    {
+
+    }
     float x {0.f};
     float y {0.f};
     float z {0.f};
+
 };
 struct TextureCoord
 {
+    TextureCoord()
+        :u(0.f), v(0.f)
+    {
+
+    }
+    TextureCoord(float u, float v)
+        :u(u), v(v)
+    {
+
+    }
     float u {0.f};
     float v {0.f};
 };
+
 
 static float fov = 45.f;
 
@@ -85,13 +107,13 @@ int main(int argc, char* agrv[])
         glfwTerminate();
         return -1;
     }
-    ShaderProgram MyShaderProgram(VERTEX_SHADER, FRAGMENT_SHADER);
-    if(!MyShaderProgram.StartUse())
+    ShaderProgram shader(VERTEX_SHADER, FRAGMENT_SHADER);
+    if(!shader.StartUse())
     {
         glfwTerminate();
         return -1;
     }
-    MyShaderProgram.SetIntValue("Texture", 0);
+    shader.SetIntValue("Texture", 0);
 
     int width = 0;
     int height = 0;
@@ -123,165 +145,142 @@ int main(int argc, char* agrv[])
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
     stbi_image_free(dataTexture);
+
+
     //VAO
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-
-    //render
+    //render loop
     while(!glfwWindowShouldClose(window))
     {
         UserInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 modelMatrix(1.0);
-//        modelMatrix = glm::rotate(modelMatrix, glm::radians((float)glfwGetTime() * 60.f), glm::vec3(0.f, 0.f, 1.f));
-//        modelMatrix = glm::scale(modelMatrix, glm::vec3(2.f, 2.f, 2.f));
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
 
+        glm::mat4 modelMatrix(1.0);
         glm::mat4 viewMatrix(1.0);
         glm::mat4 projectMatrix(1.0);
+#if 0
+            //z
+            glm::vec3 cameraPos = glm::vec3(0.f, -2.f, 2.f);
+            glm::vec3 cameraTarget = glm::vec3(0.f, 0.f, 0.f);
+            glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+            //x
+            glm::vec3 up = glm::vec3(0.f, 0.f, 1.f);
+            glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+            //y
+            glm::vec3 cameraUP = glm::normalize(glm::cross(cameraDirection, cameraRight));
 
-//        //z
-//        glm::vec3 cameraPos = glm::vec3(0.f, -2.f, 2.f);
-//        glm::vec3 cameraTarget = glm::vec3(0.f, 0.f, 0.f);
-//        glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
-//        //x
-//        glm::vec3 up = glm::vec3(0.f, 0.f, 1.f);
-//        glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-//        //y
-//        glm::vec3 cameraUP = glm::normalize(glm::cross(cameraDirection, cameraRight));
+            viewMatrix = glm::lookAt(cameraPos, cameraTarget, up);
+            projectMatrix = glm::perspective(glm::radians(fov), float(WINDOW_WIDTH / WINDOW_HEIGHT), 0.001f, 10000.f);
+#endif
 
-//        viewMatrix = glm::lookAt(cameraPos, cameraTarget, up);
-
-
-//        projectMatrix = glm::perspective(glm::radians(fov), float(WINDOW_WIDTH / WINDOW_HEIGHT), 0.001f, 10000.f);
-
-//        //test vertex
-//        {
-//            glm::vec4 testVertex = glm::vec4(0.f, 0.f, 0.f, 1.f);
-//            glm::mat4 viewMatrixTest(1.0);
-//            //move camera to origin
-//            viewMatrixTest = glm::translate(viewMatrixTest, glm::normalize(glm::vec3(0.f, 0.f, 0.f) - cameraPos));
-//        }
-
+        float l = 0.f;
+        float r = 0.f + WINDOW_WIDTH;
+        float b = 0.f + WINDOW_HEIGHT;
+        float t = 0.f;
+        float n = -1.f;
+        float f = 1.f;
+//vertex
+        float vvZ = 1.f;
+        vector<PointCoord> vv =
         {
-//            viewMatrix = glm::translate(viewMatrix, glm::vec3(0.f, 0.f, -200.f));
-//            projectMatrix = glm::perspective(glm::radians(30.f), float(WINDOW_WIDTH / WINDOW_HEIGHT), 100.f, 200.f);
-            //projectMatrix = glm::frustum(-640.f, 640.f, -320.f, 320.f,100.f, 200.f);
-            //screen coordinate
+            {0.f, 0.f,          vvZ},
+            {1280.f, 0.f,       vvZ},
+            {1280.f, 640.f,     vvZ},
+            {0.f, 640.f,        vvZ}
+        };
 
-            //test
-            float l = 0.f;
-            float r = 0.f + WINDOW_WIDTH;
-            float b = 0.f + WINDOW_HEIGHT;
-            float t = 0.f;
-            float n = 0.f;
-            float f = 1.f;
-            projectMatrix = glm::ortho(l, r, b, t, n, f);
-            auto Pxyz = [l, r, b, t, n, f](float x, float y, float z) -> PointCoord
-            {
-                PointCoord oPoint;
-                float Sx = 2 / (r - l);
-                float Sy = 2 / (t - b);
-                float Sz = 2 / (n - f);
-
-                float Tx = - (r + l) / (r - l);
-                float Ty = - (t + b) / (t - b);
-                float Tz = - (n + f) / (n - f);
-
-                oPoint.x = Sx * x + Tx;
-                oPoint.y = Sy * y + Ty;
-                oPoint.z = Sz * z + Tz;
-                return oPoint;
-            };
-
-
-            PointCoord LB = Pxyz(0.f, 0.f, -0.5f);
-            PointCoord RB = Pxyz(1280.f, 0.f, 0.f);
-            PointCoord RT = Pxyz(1280, 640.f, 0.f);
-            PointCoord LT = Pxyz(0, 640.f, 0.f);
-            //glm::vec4 PxyzO = projectMatrix * glm::vec4(0.f, 640.f, -1.f, 1.f);
-
-            int iCui = 0;
-            ++iCui;
-        }
-        MyShaderProgram.SetMatrixValue("modelMatrix", glm::value_ptr(modelMatrix));
-        MyShaderProgram.SetMatrixValue("viewMatrix", glm::value_ptr(viewMatrix));
-        MyShaderProgram.SetMatrixValue("projectMatrix", glm::value_ptr(projectMatrix));
-
-
+        float v2Z = 0.5f;
+        vector<PointCoord> vv2 =
         {
+            {320.f, 160.f, v2Z},
+            {960.f, 160.f, v2Z},
+            {960.f, 480.f, v2Z},
+            {320.f, 480.f, v2Z}
+        };
 
-            vector<PointCoord> vv;
-            vector<TextureCoord> vt;
-            PointCoord v;
-            TextureCoord t;
-            v.x = 0.f;
-            v.y = 0.f;
-            v.z = -0.5f;
+        vector<TextureCoord> tt =
+        {
+            {0, 1},
+            {1, 1},
+            {1, 0},
+            {0, 0}
+        };
+        //test
+        auto Pxyz = [l, r, b, t, n, f](float x, float y, float z) -> PointCoord
+        {
+            PointCoord oPoint;
+            float Sx = 2 / (r - l);
+            float Sy = 2 / (t - b);
+            float Sz = 2 / (n - f);
 
-            t.u = 0.f;
-            t.v = 1.f;
-            vv.emplace_back(v);
-            vt.emplace_back(t);
+            float Tx = - (r + l) / (r - l);
+            float Ty = - (t + b) / (t - b);
+            float Tz = - (n + f) / (n - f);
 
-            v.x = 1280.f;
-            v.y = 0.f;
-            v.z = -0.5f;
-
-            t.u = 1.f;
-            t.v = 1.f;
-            vv.emplace_back(v);
-            vt.emplace_back(t);
-
-            v.x = 1280.f;
-            v.y = 640.f;
-            v.z = -0.5f;
-
-            t.u = 1.f;
-            t.v = 0.f;
-            vv.emplace_back(v);
-            vt.emplace_back(t);
-
-            v.x = 0.f;
-            v.y = 640.f;
-            v.z = -0.5f;
-
-            t.u = 0.f;
-            t.v = 0.f;
-            vv.emplace_back(v);
-            vt.emplace_back(t);
-
-            //glEnable(GL_DEPTH_TEST);
-            //glDepthFunc(GL_GREATER);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, Texture);
-
-
-            unsigned int buffers[2];
-            glGenBuffers(2, buffers);
-            glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-            glBufferData(GL_ARRAY_BUFFER, vv.size() * sizeof (vv[0]), (void*)&vv[0], GL_DYNAMIC_DRAW);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vv.at(0)), (void*)0);
-
-            glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-            glBufferData(GL_ARRAY_BUFFER, vt.size() * sizeof (vt[0]), (void*)&vt[0], GL_DYNAMIC_DRAW);
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vt.at(0)), (void*)0);
-
-            glDrawArrays(GL_TRIANGLE_FAN, 0, vv.size());
-
-            modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f, 0.5f, 0.5f));
-            MyShaderProgram.SetMatrixValue("modelMatrix", glm::value_ptr(modelMatrix));
-            glDrawArrays(GL_TRIANGLE_FAN, 0, vv.size());
-
-
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glDeleteBuffers(2, buffers);
+            oPoint.x = Sx * x + Tx;
+            oPoint.y = Sy * y + Ty;
+            oPoint.z = Sz * z + Tz;
+            return oPoint;
+        };
+        vector<PointCoord> vproject;
+        for(auto& vertex : vv)
+        {
+            vproject.emplace_back(Pxyz(vertex.x, vertex.y, vertex.z));
         }
+        vv.swap(vproject);
+        vproject.clear();
+        for(auto& vertex : vv2)
+        {
+            vproject.emplace_back(Pxyz(vertex.x, vertex.y, vertex.z));
+        }
+        vv2.swap(vproject);
+//matrix
+        //projectMatrix = glm::ortho(l, r, b, t, n, f);
+        projectMatrix = glm::mat4(1.f);
+
+
+//render
+        shader.SetMatrixValue("modelMatrix", glm::value_ptr(modelMatrix));
+        shader.SetMatrixValue("viewMatrix", glm::value_ptr(viewMatrix));
+        shader.SetMatrixValue("projectMatrix", glm::value_ptr(projectMatrix));
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, Texture);
+
+        unsigned int VBO_v;
+        glGenBuffers(1, &VBO_v);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO_v);
+        glBufferData(GL_ARRAY_BUFFER, vv.size() * sizeof(vv[0]), (void*)&vv[0], GL_DYNAMIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vv[0]), (void*)0);
+
+        unsigned int VBO_t;
+        glGenBuffers(1, &VBO_t);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO_t);
+        glBufferData(GL_ARRAY_BUFFER, tt.size() * sizeof(tt[0]), (void*)&tt[0], GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(tt[0]), (void*)0);
+        //glDrawArrays(GL_TRIANGLE_FAN, 0, vv.size());
+
+        unsigned int VBO_v2;
+        glGenBuffers(1, &VBO_v2);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO_v2);
+        glBufferData(GL_ARRAY_BUFFER, vv2.size() * sizeof(vv2[0]), (void*)&vv2[0], GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vv2[0]), (void*)0);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, vv2.size());
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDeleteBuffers(1, &VBO_v);
+        glDeleteBuffers(1, &VBO_t);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
