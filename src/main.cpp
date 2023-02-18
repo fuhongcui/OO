@@ -119,32 +119,53 @@ int main(int argc, char* agrv[])
     int height = 0;
     int nrChannels = 0;
     //Texture
-    string texturePath = agrv[0];
-    auto dotPos = texturePath.find_last_of(SEPERATOR);
+    string textureBasePath = agrv[0];
+    auto dotPos = textureBasePath.find_last_of(SEPERATOR);
     if (dotPos != string::npos)
     {
-        texturePath = texturePath.substr(0, dotPos + 1);
+        textureBasePath = textureBasePath.substr(0, dotPos + 1);
     }
-    texturePath += "res";
-    texturePath += SEPERATOR;
-    texturePath += "1.png";
+    textureBasePath += "res";
+    textureBasePath += SEPERATOR;
+
+
+    string texture1Path = textureBasePath + "1.jpg";
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *dataTexture = stbi_load(texturePath.c_str(), &width, &height, &nrChannels, 0);
-    if(!dataTexture)
+    unsigned char *dataTexture1 = stbi_load(texture1Path.c_str(), &width, &height, &nrChannels, 0);
+    if(!dataTexture1)
     {
         return -1;
     }
-    unsigned int Texture;
-    glGenTextures(1, &Texture);
-    glBindTexture(GL_TEXTURE_2D, Texture);
+    unsigned int texture1;
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, width, height, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, dataTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, width, height, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, dataTexture1);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
-    stbi_image_free(dataTexture);
+    stbi_image_free(dataTexture1);
+
+    string texture2Path = textureBasePath + "2.png";
+    unsigned char *dataTexture2 = stbi_load(texture2Path.c_str(), &width, &height, &nrChannels, 0);
+    if(!dataTexture2)
+    {
+        return -1;
+    }
+    unsigned int texture2;
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, width, height, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, dataTexture2);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    stbi_image_free(dataTexture2);
+
 
 
     //VAO
@@ -160,7 +181,7 @@ int main(int argc, char* agrv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
+        glDepthFunc(GL_LESS);
 
         glm::mat4 modelMatrix(1.0);
         glm::mat4 viewMatrix(1.0);
@@ -187,8 +208,8 @@ int main(int argc, char* agrv[])
         float n = -1.f;
         float f = 1.f;
 //vertex
-        float vvZ = 1.f;
-        vector<PointCoord> vv =
+        float vvZ = 0.79f;
+        vector<PointCoord> vertex1 =
         {
             {0.f, 0.f,          vvZ},
             {1280.f, 0.f,       vvZ},
@@ -196,8 +217,8 @@ int main(int argc, char* agrv[])
             {0.f, 640.f,        vvZ}
         };
 
-        float v2Z = 0.5f;
-        vector<PointCoord> vv2 =
+        float v2Z = 0.8f;
+        vector<PointCoord> vertex2 =
         {
             {320.f, 160.f, v2Z},
             {960.f, 160.f, v2Z},
@@ -205,7 +226,7 @@ int main(int argc, char* agrv[])
             {320.f, 480.f, v2Z}
         };
 
-        vector<TextureCoord> tt =
+        vector<TextureCoord> textureCoord =
         {
             {0, 1},
             {1, 1},
@@ -230,18 +251,19 @@ int main(int argc, char* agrv[])
             return oPoint;
         };
         vector<PointCoord> vproject;
-        for(auto& vertex : vv)
+        for(auto& vertex : vertex1)
         {
             vproject.emplace_back(Pxyz(vertex.x, vertex.y, vertex.z));
         }
-        vv.swap(vproject);
+        vertex1.swap(vproject);
         vproject.clear();
-        for(auto& vertex : vv2)
+        for(auto& vertex : vertex2)
         {
             vproject.emplace_back(Pxyz(vertex.x, vertex.y, vertex.z));
         }
-        vv2.swap(vproject);
+        vertex2.swap(vproject);
 //matrix
+        //projectMatrix = glm::frustum(l, r, b, t, n, f);
         //projectMatrix = glm::ortho(l, r, b, t, n, f);
         projectMatrix = glm::mat4(1.f);
 
@@ -252,41 +274,43 @@ int main(int argc, char* agrv[])
         shader.SetMatrixValue("projectMatrix", glm::value_ptr(projectMatrix));
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, Texture);
+        glBindTexture(GL_TEXTURE_2D, texture1);
 
-        unsigned int VBO_v;
-        glGenBuffers(1, &VBO_v);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO_v);
-        glBufferData(GL_ARRAY_BUFFER, vv.size() * sizeof(vv[0]), (void*)&vv[0], GL_DYNAMIC_DRAW);
+        unsigned int VBOvertex1;
+        glGenBuffers(1, &VBOvertex1);
+        glBindBuffer(GL_ARRAY_BUFFER, VBOvertex1);
+        glBufferData(GL_ARRAY_BUFFER, vertex1.size() * sizeof(vertex1[0]), (void*)&vertex1[0], GL_DYNAMIC_DRAW);
 
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vv[0]), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex1[0]), (void*)0);
 
-        unsigned int VBO_t;
-        glGenBuffers(1, &VBO_t);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO_t);
-        glBufferData(GL_ARRAY_BUFFER, tt.size() * sizeof(tt[0]), (void*)&tt[0], GL_DYNAMIC_DRAW);
+        unsigned int VBOtextureCoord;
+        glGenBuffers(1, &VBOtextureCoord);
+        glBindBuffer(GL_ARRAY_BUFFER, VBOtextureCoord);
+        glBufferData(GL_ARRAY_BUFFER, textureCoord.size() * sizeof(textureCoord[0]), (void*)&textureCoord[0], GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(tt[0]), (void*)0);
-        //glDrawArrays(GL_TRIANGLE_FAN, 0, vv.size());
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(textureCoord[0]), (void*)0);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, vertex1.size());
 
-        unsigned int VBO_v2;
-        glGenBuffers(1, &VBO_v2);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO_v2);
-        glBufferData(GL_ARRAY_BUFFER, vv2.size() * sizeof(vv2[0]), (void*)&vv2[0], GL_DYNAMIC_DRAW);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+        unsigned int VBOvertex2;
+        glGenBuffers(1, &VBOvertex2);
+        glBindBuffer(GL_ARRAY_BUFFER, VBOvertex2);
+        glBufferData(GL_ARRAY_BUFFER, vertex2.size() * sizeof(vertex2[0]), (void*)&vertex2[0], GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vv2[0]), (void*)0);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, vv2.size());
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex2[0]), (void*)0);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, vertex2.size());
 
         glBindTexture(GL_TEXTURE_2D, 0);
-        glDeleteBuffers(1, &VBO_v);
-        glDeleteBuffers(1, &VBO_t);
+        glDeleteBuffers(1, &VBOtextureCoord);
+        glDeleteBuffers(1, &VBOvertex1);
+        glDeleteBuffers(1, &VBOvertex2);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     //clean
     glDeleteVertexArrays(1, &VAO);
-    glDeleteTextures(1, &Texture);
+    glDeleteTextures(1, &texture1);
 
     glfwTerminate();
     return 0;
