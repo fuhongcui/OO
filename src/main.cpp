@@ -205,7 +205,7 @@ int main(int argc, char* agrv[])
         float r = 0.f + WINDOW_WIDTH;
         float b = 0.f + WINDOW_HEIGHT;
         float t = 0.f;
-        float n = -1.f;
+        float n = 0.5f;
         float f = 1.f;
 //vertex
         float vvZ = 0.79f;
@@ -233,8 +233,8 @@ int main(int argc, char* agrv[])
             {1, 0},
             {0, 0}
         };
-        //test
-        auto Pxyz = [l, r, b, t, n, f](float x, float y, float z) -> PointCoord
+//ortho
+        auto Ortho = [l, r, b, t, n, f](float x, float y, float z) -> PointCoord
         {
             PointCoord oPoint;
             float Sx = 2 / (r - l);
@@ -250,22 +250,69 @@ int main(int argc, char* agrv[])
             oPoint.z = Sz * z + Tz;
             return oPoint;
         };
+//perspective
+        auto Perspective = [l, r, b, t, n, f](float Xe, float Ye, float Ze) -> PointCoord
+        {
+            PointCoord oPoint;
+
+            float Xp = n * Xe / -Ze;
+            float Yp = n * Ye / -Ze;
+
+            //Xp -> Xn : l -> -1 r -> 1
+            float Xn = (2 * Xp) / (r - l) - (r + l) / (r - l);
+            //Yp -> Yn : b -> -1 t -> 1
+            float Yn = (2 * Yp) / (t - b) - (t + b) / (t - b);
+
+            float Zn = (- ((f + n) / (f - n) *  Ze) - (2 * f * n) / (f - n)) / -Ze;
+
+            oPoint.x = Xn;
+            oPoint.y = Yn;
+            oPoint.z = Zn;
+            return oPoint;
+        };
         vector<PointCoord> vproject;
+#if 1
+//calculate test
         for(auto& vertex : vertex1)
         {
-            vproject.emplace_back(Pxyz(vertex.x, vertex.y, vertex.z));
+            vproject.emplace_back(Perspective(vertex.x, vertex.y, vertex.z));
         }
         vertex1.swap(vproject);
         vproject.clear();
         for(auto& vertex : vertex2)
         {
-            vproject.emplace_back(Pxyz(vertex.x, vertex.y, vertex.z));
+            vproject.emplace_back(Perspective(vertex.x, vertex.y, vertex.z));
         }
         vertex2.swap(vproject);
+#else
+//multiply matrix test
+        glm::mat4 frustumMatrix = glm::frustum(l, r, b, t, n, f);
+        for(auto & vertex : vertex1)
+        {
+            PointCoord p;
+            glm::vec4 vp = frustumMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.f);
+            p.x = vp.x / vp.w;
+            p.y = vp.y / vp.w;
+            p.z = vp.z / vp.w;
+            vproject.emplace_back(p);
+        }
+        vertex1.swap(vproject);
+        vproject.clear();
+        for(auto& vertex : vertex2)
+        {
+            PointCoord p;
+            glm::vec4 vp = frustumMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.f);
+            p.x = vp.x / vp.w;
+            p.y = vp.y / vp.w;
+            p.z = vp.z / vp.w;
+            vproject.emplace_back(p);
+        }
+        vertex2.swap(vproject);
+#endif
 //matrix
         //projectMatrix = glm::frustum(l, r, b, t, n, f);
         //projectMatrix = glm::ortho(l, r, b, t, n, f);
-        projectMatrix = glm::mat4(1.f);
+
 
 
 //render
