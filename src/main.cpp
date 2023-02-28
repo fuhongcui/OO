@@ -19,31 +19,28 @@ using namespace std;
 const string VERTEX_SHADER =
 "#version 330 core \n"
 "layout (location = 0) in vec3 aPos; \n"
-"layout (location = 1) in vec2 aTextureCoord; \n"
 "uniform mat4 modelMatrix; \n"
 "uniform mat4 viewMatrix; \n"
 "uniform mat4 projectMatrix; \n"
-"out vec2 TexCoord;"
 "void main() \n"
 "{ \n"
 "   gl_Position = projectMatrix * viewMatrix * modelMatrix * vec4(aPos.x, aPos.y, aPos.z, 1.0); \n"
-"   TexCoord = aTextureCoord; \n"
 "} \n"
 ;
 const string FRAGMENT_SHADER =
 "#version 330 core \n"
 "out vec4 FragColor; \n"
-"in vec2 TexCoord; \n"
-"uniform sampler2D Texture; \n"
 "void main() \n"
 "{ \n"
-"   FragColor = texture(Texture, TexCoord); \n"
+"   FragColor = vec4(0.0, 1.0, 1.0, 1.0); \n"
 "} \n"
 ;
 
 void WindowSizeCallback(GLFWwindow* window, int width, int height);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void UserInput(GLFWwindow *window);
+
+
 
 const unsigned int WINDOW_WIDTH = 1280;
 const unsigned int WINDOW_HEIGHT = 640;
@@ -84,6 +81,7 @@ struct TextureCoord
 
 static float fov = 45.f;
 
+bool GetPos(PointCoord& currentPos);
 
 int main(int argc, char* agrv[])
 {
@@ -114,11 +112,12 @@ int main(int argc, char* agrv[])
         return -1;
     }
     shader.SetIntValue("Texture", 0);
-
+#if 0
+    //Texture
     int width = 0;
     int height = 0;
     int nrChannels = 0;
-    //Texture
+   
     string textureBasePath = agrv[0];
     auto dotPos = textureBasePath.find_last_of(SEPERATOR);
     if (dotPos != string::npos)
@@ -147,32 +146,13 @@ int main(int argc, char* agrv[])
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
     stbi_image_free(dataTexture1);
-
-    string texture2Path = textureBasePath + "2.png";
-    unsigned char *dataTexture2 = stbi_load(texture2Path.c_str(), &width, &height, &nrChannels, 0);
-    if(!dataTexture2)
-    {
-        return -1;
-    }
-    unsigned int texture2;
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, width, height, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, dataTexture2);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    stbi_image_free(dataTexture2);
-
-
-
+#endif
     //VAO
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
+    vector<PointCoord> vertex;
     //render loop
     while(!glfwWindowShouldClose(window))
     {
@@ -180,26 +160,9 @@ int main(int argc, char* agrv[])
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-
         glm::mat4 modelMatrix(1.0);
         glm::mat4 viewMatrix(1.0);
         glm::mat4 projectMatrix(1.0);
-#if 0
-            //z
-            glm::vec3 cameraPos = glm::vec3(0.f, -2.f, 2.f);
-            glm::vec3 cameraTarget = glm::vec3(0.f, 0.f, 0.f);
-            glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
-            //x
-            glm::vec3 up = glm::vec3(0.f, 0.f, 1.f);
-            glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-            //y
-            glm::vec3 cameraUP = glm::normalize(glm::cross(cameraDirection, cameraRight));
-
-            viewMatrix = glm::lookAt(cameraPos, cameraTarget, up);
-            projectMatrix = glm::perspective(glm::radians(fov), float(WINDOW_WIDTH / WINDOW_HEIGHT), 0.001f, 10000.f);
-#endif
 
         float l = 0.f;
         float r = 0.f + WINDOW_WIDTH;
@@ -207,110 +170,46 @@ int main(int argc, char* agrv[])
         float t = 0.f;
         float n = -1.f;
         float f = 1.f;
-//vertex
-        float vvZ = 0.79f;
-        vector<PointCoord> vertex1 =
+       
+        PointCoord pos;
+        bool bSuccess = GetPos(pos);
+        if (bSuccess)
         {
-            {0.f, 0.f,          vvZ},
-            {1280.f, 0.f,       vvZ},
-            {1280.f, 640.f,     vvZ},
-            {0.f, 640.f,        vvZ}
-        };
-
-        float v2Z = 0.8f;
-        vector<PointCoord> vertex2 =
-        {
-            {320.f, 160.f, v2Z},
-            {960.f, 160.f, v2Z},
-            {960.f, 480.f, v2Z},
-            {320.f, 480.f, v2Z}
-        };
-
-        vector<TextureCoord> textureCoord =
-        {
-            {0, 1},
-            {1, 1},
-            {1, 0},
-            {0, 0}
-        };
-        //test
-        auto Pxyz = [l, r, b, t, n, f](float x, float y, float z) -> PointCoord
-        {
-            PointCoord oPoint;
-            float Sx = 2 / (r - l);
-            float Sy = 2 / (t - b);
-            float Sz = 2 / (n - f);
-
-            float Tx = - (r + l) / (r - l);
-            float Ty = - (t + b) / (t - b);
-            float Tz = - (n + f) / (n - f);
-
-            oPoint.x = Sx * x + Tx;
-            oPoint.y = Sy * y + Ty;
-            oPoint.z = Sz * z + Tz;
-            return oPoint;
-        };
-        vector<PointCoord> vproject;
-        for(auto& vertex : vertex1)
-        {
-            vproject.emplace_back(Pxyz(vertex.x, vertex.y, vertex.z));
+            vertex.emplace_back(pos);
         }
-        vertex1.swap(vproject);
-        vproject.clear();
-        for(auto& vertex : vertex2)
+        if (!vertex.empty())
         {
-            vproject.emplace_back(Pxyz(vertex.x, vertex.y, vertex.z));
-        }
-        vertex2.swap(vproject);
 //matrix
-        //projectMatrix = glm::frustum(l, r, b, t, n, f);
-        //projectMatrix = glm::ortho(l, r, b, t, n, f);
-        projectMatrix = glm::mat4(1.f);
+            //projectMatrix = glm::frustum(l, r, b, t, n, f);
+            projectMatrix = glm::ortho(l, r, b, t, n, f);
+            //projectMatrix = glm::mat4(1.f);
 
 
 //render
-        shader.SetMatrixValue("modelMatrix", glm::value_ptr(modelMatrix));
-        shader.SetMatrixValue("viewMatrix", glm::value_ptr(viewMatrix));
-        shader.SetMatrixValue("projectMatrix", glm::value_ptr(projectMatrix));
+            shader.SetMatrixValue("modelMatrix", glm::value_ptr(modelMatrix));
+            shader.SetMatrixValue("viewMatrix", glm::value_ptr(viewMatrix));
+            shader.SetMatrixValue("projectMatrix", glm::value_ptr(projectMatrix));
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
+            unsigned int VBO;
+            glGenBuffers(1, &VBO);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vertex[0]), (void*)&vertex[0], GL_DYNAMIC_DRAW);
 
-        unsigned int VBOvertex1;
-        glGenBuffers(1, &VBOvertex1);
-        glBindBuffer(GL_ARRAY_BUFFER, VBOvertex1);
-        glBufferData(GL_ARRAY_BUFFER, vertex1.size() * sizeof(vertex1[0]), (void*)&vertex1[0], GL_DYNAMIC_DRAW);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex[0]), (void*)0);
 
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex1[0]), (void*)0);
+            //glPolygonMode(GL_FRONT, GL_POINT);
+            glPointSize(4.f);
+            glDrawArrays(GL_POINTS, 0, vertex.size());
 
-        unsigned int VBOtextureCoord;
-        glGenBuffers(1, &VBOtextureCoord);
-        glBindBuffer(GL_ARRAY_BUFFER, VBOtextureCoord);
-        glBufferData(GL_ARRAY_BUFFER, textureCoord.size() * sizeof(textureCoord[0]), (void*)&textureCoord[0], GL_DYNAMIC_DRAW);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(textureCoord[0]), (void*)0);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, vertex1.size());
-
-        glBindTexture(GL_TEXTURE_2D, texture2);
-        unsigned int VBOvertex2;
-        glGenBuffers(1, &VBOvertex2);
-        glBindBuffer(GL_ARRAY_BUFFER, VBOvertex2);
-        glBufferData(GL_ARRAY_BUFFER, vertex2.size() * sizeof(vertex2[0]), (void*)&vertex2[0], GL_DYNAMIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex2[0]), (void*)0);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, vertex2.size());
-
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glDeleteBuffers(1, &VBOtextureCoord);
-        glDeleteBuffers(1, &VBOvertex1);
-        glDeleteBuffers(1, &VBOvertex2);
-        glfwSwapBuffers(window);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDeleteBuffers(1, &VBO);
+            glfwSwapBuffers(window);;
+        }
         glfwPollEvents();
     }
     //clean
     glDeleteVertexArrays(1, &VAO);
-    glDeleteTextures(1, &texture1);
 
     glfwTerminate();
     return 0;
@@ -341,3 +240,57 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     fov = 45.0f;
 }
 
+bool GetPos(PointCoord& currentPos)
+{
+    static double lastTime = glfwGetTime();
+    static bool lastInit = false;
+    static PointCoord lastPos = {0.f, 0.f, 0.f};
+    static bool bStart = false;
+    static double StartTime = 0.0;
+    if (!bStart)
+    {
+        bStart = true;
+        StartTime = glfwGetTime();
+    }
+    
+    double CurrentTime = glfwGetTime();
+    if((CurrentTime - lastTime) < 0.06)
+    {
+        return false;
+    }
+    lastTime = CurrentTime;
+
+
+    auto t = CurrentTime - StartTime;
+
+
+    PointCoord StartPos = { 0.f, 320.f, 0.f };
+    float fSpeed = 50.f;
+    PointCoord v0 = { 0.f, 320.f, 0.f };
+    PointCoord v1 = { 10.f, 320.f, 0.f };
+    float distance = sqrt(pow((v1.x - v0.x), 2) + pow((v1.y - v0.y), 2));
+
+    float cosTheta = (v1.x  - v0.x) / distance;
+    float sinTheta = (v1.y - v0.y) / distance;
+
+
+
+    float a = -1.f;
+
+
+    currentPos.x = StartPos.x + fSpeed * cosTheta * t + 0.5 * a * cosTheta * pow(t, 2);
+    currentPos.y = StartPos.y + fSpeed * sinTheta * t + 0.5 * a * sinTheta * pow(t, 2);
+
+    if (lastInit)
+    {
+        float moveDistance = sqrt(pow((currentPos.x - lastPos.x), 2) + pow((currentPos.y - lastPos.y), 2));
+        if (moveDistance < 1.f)
+        {
+            return false;
+        }
+    }
+    lastInit = true;
+    lastPos = currentPos;
+
+    return true;
+}
