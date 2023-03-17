@@ -138,25 +138,6 @@ int main(int argc, char* agrv[])
     glBindTexture(GL_TEXTURE_2D, 0);
     stbi_image_free(dataTexture);
 
-//vertex
-    PointCoord lb = {-100, -100, 0, 0, 0};
-    PointCoord rb = {100, -100, 0, 1, 0};
-    PointCoord rt = {100, 100, 0, 1, 1};
-    PointCoord lt = {-100, 100, 0, 0, 1};
-
-    vector<PointCoord> vertex;
-    vertex.reserve(4);
-    vertex.emplace_back(lb);
-    vertex.emplace_back(rb);
-    vertex.emplace_back(rt);
-    vertex.emplace_back(lt);
-
-    unsigned int VBOvertex;
-    glGenBuffers(1, &VBOvertex);
-    glBindBuffer(GL_ARRAY_BUFFER, VBOvertex);
-    glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vertex[0]), (void*)&vertex[0], GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
     //VAO
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -177,7 +158,7 @@ int main(int argc, char* agrv[])
         glm::mat4 frustum(1.0);
 
         float cameraDistance = 500.f;
-        float surveyAngle = 45;
+        float surveyAngle = 0;
         float rFov = std::tan((FOV * 3.14159265 / 180.0) / 2.0);
         float aspectRatio = WINDOW_WIDTH / WINDOW_HEIGHT;
         Point2D screenCenterPos(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
@@ -199,6 +180,24 @@ int main(int argc, char* agrv[])
         world = glm::rotate(world, glm::radians(-surveyAngle), glm::vec3(1.f, 0.f, 0.f));
 
         mvp = frustum * world;
+//vertex
+        PointCoord lb = {-100, 0, 0, 0, 0};
+        PointCoord rb = {100, 0, 0, 1, 0};
+        PointCoord rt = {100, 2 * cameraDistance * rFov / 3.f, 0, 1, 1};
+        PointCoord lt = {-100, 2 * cameraDistance * rFov / 3.f, 0, 0, 1};
+
+        vector<PointCoord> vertex;
+        vertex.reserve(4);
+        vertex.emplace_back(lb);
+        vertex.emplace_back(rb);
+        vertex.emplace_back(rt);
+        vertex.emplace_back(lt);
+
+        unsigned int VBOvertex;
+        glGenBuffers(1, &VBOvertex);
+        glBindBuffer(GL_ARRAY_BUFFER, VBOvertex);
+        glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vertex[0]), (void*)&vertex[0], GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 //render
         shader.SetIntValue("Texture", 0);
         shader.SetMatrixValue("mvp", glm::value_ptr(mvp));;
@@ -214,6 +213,8 @@ int main(int argc, char* agrv[])
         glBindTexture(GL_TEXTURE_2D, texture);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertex.size());
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glDeleteBuffers(1, &VBOvertex);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
