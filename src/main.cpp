@@ -104,12 +104,11 @@ int main(int argc, char* agrv[])
         glfwTerminate();
         return -1;
     }
-    shader.SetIntValue("Texture", 0);
-
+    //Texture
     int width = 0;
     int height = 0;
     int nrChannels = 0;
-    //Texture
+
     string textureBasePath = agrv[0];
     auto dotPos = textureBasePath.find_last_of(SEPERATOR);
     if (dotPos != string::npos)
@@ -122,40 +121,22 @@ int main(int argc, char* agrv[])
 
     string texture1Path = textureBasePath + "1.jpg";
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *dataTexture1 = stbi_load(texture1Path.c_str(), &width, &height, &nrChannels, 0);
-    if(!dataTexture1)
+    unsigned char *dataTexture = stbi_load(texture1Path.c_str(), &width, &height, &nrChannels, 0);
+    if(!dataTexture)
     {
         return -1;
     }
-    unsigned int texture1;
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, width, height, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, dataTexture1);
+    glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, width, height, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, dataTexture);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
-    stbi_image_free(dataTexture1);
-
-    string texture2Path = textureBasePath + "2.png";
-    unsigned char *dataTexture2 = stbi_load(texture2Path.c_str(), &width, &height, &nrChannels, 0);
-    if(!dataTexture2)
-    {
-        return -1;
-    }
-    unsigned int texture2;
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, width, height, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, dataTexture2);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    stbi_image_free(dataTexture2);
+    stbi_image_free(dataTexture);
 
 //vertex
     PointCoord lb = {-100, -100, 0, 0, 0};
@@ -164,11 +145,9 @@ int main(int argc, char* agrv[])
     PointCoord lt = {-100, 100, 0, 0, 1};
 
     vector<PointCoord> vertex;
-    vertex.reserve(6);
+    vertex.reserve(4);
     vertex.emplace_back(lb);
     vertex.emplace_back(rb);
-    vertex.emplace_back(rt);
-    vertex.emplace_back(lb);
     vertex.emplace_back(rt);
     vertex.emplace_back(lt);
 
@@ -221,17 +200,18 @@ int main(int argc, char* agrv[])
 
         mvp = frustum * world;
 //render
+        shader.SetIntValue("Texture", 0);
         shader.SetMatrixValue("mvp", glm::value_ptr(mvp));;
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
+        glBindTexture(GL_TEXTURE_2D, texture);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBOvertex);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex[0]), (void*)0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex[0]), (void*)(3 * sizeof (float)));
-        glBindTexture(GL_TEXTURE_2D, texture1);
+        glBindTexture(GL_TEXTURE_2D, texture);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertex.size());
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glfwSwapBuffers(window);
@@ -239,7 +219,7 @@ int main(int argc, char* agrv[])
     }
     //clean
     glDeleteVertexArrays(1, &VAO);
-    glDeleteTextures(1, &texture1);
+    glDeleteTextures(1, &texture);
 
     glfwTerminate();
     return 0;
