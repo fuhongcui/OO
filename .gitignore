@@ -1,1 +1,6 @@
-/build/CMakeLists.txt.userbin/
+#build目录
+/build
+#bin/下生成的二进制文件
+/bin/Main*
+#QTCreator文件
+CMakeLists.txt.user
