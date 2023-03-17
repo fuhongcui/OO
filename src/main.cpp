@@ -198,13 +198,13 @@ int main(int argc, char* agrv[])
         glm::mat4 frustum(1.0);
 
         float cameraDistance = 500.f;
-        float surveyAngle = 0;
+        float surveyAngle = 45;
         float rFov = std::tan((FOV * 3.14159265 / 180.0) / 2.0);
         float aspectRatio = WINDOW_WIDTH / WINDOW_HEIGHT;
         Point2D screenCenterPos(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
 
-        float frustumNear = 0.1f;
+        float frustumNear = 100.f;
         float frustumFar = 1000.f;
         float frustumLeft = -frustumNear * rFov * aspectRatio;
         float frustumRight = frustumNear * rFov * aspectRatio;
