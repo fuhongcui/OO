@@ -212,7 +212,7 @@ int main(int argc, char* agrv[])
             float Y_view = Y_near * cameraDistance / frustumNear;
             return Y_view;
         };
-        //屏幕坐标 ->摄像机坐标  -> 屏幕坐标 输入：视野角度 摄像机距离 屏幕高度
+        //屏幕坐标 ->摄像机坐标 输入：视野角度 摄像机距离 屏幕高度
         auto Y_window_TO_Y_View_2 = [](float Y_window, float fov, float cameraDistance, float screenHeight) -> float
         {
             float rFov = std::tan((fov * 3.14159265 / 180.0) / 2.0);
