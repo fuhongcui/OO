@@ -180,11 +180,37 @@ int main(int argc, char* agrv[])
         world = glm::rotate(world, glm::radians(-surveyAngle), glm::vec3(1.f, 0.f, 0.f));
 
         mvp = frustum * world;
+
+//算点东西
+        auto Y_View_TO_Y_window = [](float Y_view, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance) -> float
+        {
+            //摄像机Y_view 投影到近景面 Y_near
+            float Y_near = frustumNear * Y_view / cameraDistance;
+            //近景面坐标Y_near映射到Y_clip[-1, 1]
+            float Y_clip = ( 2.f * Y_near / (frustumTop - frustumBottum) ) - ( (frustumTop + frustumBottum) / (frustumTop - frustumBottum) );
+            //裁剪坐标Y_clip映射到Y_windows
+            float Y_window = (1.f - Y_clip) / 2.f * WINDOW_HEIGHT;
+            return Y_window;
+        };
+
+        auto Y_window_TO_Y_View = [](float Y_window, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance) -> float
+        {
+            //屏幕坐标Y_windows映射到裁剪坐标Y_clip
+            float Y_clip = 1.f - Y_window / WINDOW_HEIGHT * 2.f;
+            //裁剪坐标Y_clip[-1, 1]映射到近景面坐标Y_near
+            float Y_near = ( Y_clip + ( (frustumTop + frustumBottum) / (frustumTop - frustumBottum) ) ) * (frustumTop - frustumBottum) / 2.f;
+            //近景面坐标Y_near逆映射到摄像机Y_view
+            float Y_view = Y_near * cameraDistance / frustumNear;
+            return Y_view;
+        };
+
+        float Y_window = Y_View_TO_Y_window(100.f, frustumBottum, frustumTop, frustumNear, cameraDistance);
+        float Y_view = Y_window_TO_Y_View(600, frustumBottum, frustumTop, frustumNear, cameraDistance);
 //vertex
         PointCoord lb = {-100, 0, 0, 0, 0};
         PointCoord rb = {100, 0, 0, 1, 0};
-        PointCoord rt = {100, 2 * cameraDistance * rFov / 3.f, 0, 1, 1};
-        PointCoord lt = {-100, 2 * cameraDistance * rFov / 3.f, 0, 0, 1};
+        PointCoord rt = {100, Y_view, 0, 1, 1};
+        PointCoord lt = {-100, Y_view, 0, 0, 1};
 
         vector<PointCoord> vertex;
         vertex.reserve(4);
