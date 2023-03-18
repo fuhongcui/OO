@@ -182,35 +182,49 @@ int main(int argc, char* agrv[])
         mvp = frustum * world;
 
 //算点东西
-        auto Y_View_TO_Y_window = [](float Y_view, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance) -> float
+        //摄像机坐标 -> 屏幕坐标 输入：frustum上下左右 摄像机距离 屏幕高度
+        auto Y_View_TO_Y_window = [](float Y_view, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance, float screenHeight) -> float
         {
             //摄像机Y_view 投影到近景面 Y_near
             float Y_near = frustumNear * Y_view / cameraDistance;
             //近景面坐标Y_near映射到Y_clip[-1, 1]
             float Y_clip = ( 2.f * Y_near / (frustumTop - frustumBottum) ) - ( (frustumTop + frustumBottum) / (frustumTop - frustumBottum) );
             //裁剪坐标Y_clip映射到Y_windows
-            float Y_window = (1.f - Y_clip) / 2.f * WINDOW_HEIGHT;
+            float Y_window = (1.f - Y_clip) / 2.f * screenHeight;
             return Y_window;
         };
-
-        auto Y_window_TO_Y_View = [](float Y_window, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance) -> float
+        //摄像机坐标 -> 屏幕坐标 输入：视野角度 摄像机距离 屏幕高度
+        auto Y_View_TO_Y_window_2 = [](float Y_view, float fov, float cameraDistance, float screenHeight) -> float
+        {
+            float rFov = std::tan((fov * 3.14159265 / 180.0) / 2.0);
+            float Y_clip = Y_view / (rFov * cameraDistance);
+            float Y_window = (1.f - Y_clip) / 2.f * screenHeight;
+            return Y_window;
+        };
+        //屏幕坐标 ->摄像机坐标 输入：frustum上下左右 摄像机距离 屏幕高度
+        auto Y_window_TO_Y_View = [](float Y_window, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance, float screenHeight) -> float
         {
             //屏幕坐标Y_windows映射到裁剪坐标Y_clip
-            float Y_clip = 1.f - Y_window / WINDOW_HEIGHT * 2.f;
+            float Y_clip = 1.f - Y_window / screenHeight * 2.f;
             //裁剪坐标Y_clip[-1, 1]映射到近景面坐标Y_near
             float Y_near = ( Y_clip + ( (frustumTop + frustumBottum) / (frustumTop - frustumBottum) ) ) * (frustumTop - frustumBottum) / 2.f;
             //近景面坐标Y_near逆映射到摄像机Y_view
             float Y_view = Y_near * cameraDistance / frustumNear;
             return Y_view;
         };
-
-        float Y_window = Y_View_TO_Y_window(100.f, frustumBottum, frustumTop, frustumNear, cameraDistance);
-        float Y_view = Y_window_TO_Y_View(600, frustumBottum, frustumTop, frustumNear, cameraDistance);
+        //屏幕坐标 ->摄像机坐标  -> 屏幕坐标 输入：视野角度 摄像机距离 屏幕高度
+        auto Y_window_TO_Y_View_2 = [](float Y_window, float fov, float cameraDistance, float screenHeight) -> float
+        {
+            float rFov = std::tan((fov * 3.14159265 / 180.0) / 2.0);
+            float Y_clip = 1.f - (Y_window / screenHeight * 2.f);
+            float Y_view = Y_clip * (cameraDistance * rFov);
+            return Y_view;
+        };
 //vertex
-        PointCoord lb = {-100, 0, 0, 0, 0};
-        PointCoord rb = {100, 0, 0, 1, 0};
-        PointCoord rt = {100, Y_view, 0, 1, 1};
-        PointCoord lt = {-100, Y_view, 0, 0, 1};
+        PointCoord lt = {-100,  Y_window_TO_Y_View_2(0, FOV, cameraDistance, WINDOW_HEIGHT), 0, 0, 1};
+        PointCoord rt = {100,   Y_window_TO_Y_View_2(0, FOV, cameraDistance, WINDOW_HEIGHT), 0, 1, 1};
+        PointCoord rb = {100,   Y_window_TO_Y_View_2(640, FOV, cameraDistance, WINDOW_HEIGHT), 0, 1, 0};
+        PointCoord lb = {-100,  Y_window_TO_Y_View_2(640, FOV, cameraDistance, WINDOW_HEIGHT), 0, 0, 0};
 
         vector<PointCoord> vertex;
         vertex.reserve(4);
