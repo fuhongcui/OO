@@ -220,6 +220,7 @@ int main(int argc, char* agrv[])
             float Y_view = Y_clip * (cameraDistance * rFov);
             return Y_view;
         };
+        auto ff = Y_View_TO_Y_window_2(100, 30, 500, 640);
 //vertex
         PointCoord lt = {-100,  Y_window_TO_Y_View_2(0, FOV, cameraDistance, WINDOW_HEIGHT), 0, 0, 1};
         PointCoord rt = {100,   Y_window_TO_Y_View_2(0, FOV, cameraDistance, WINDOW_HEIGHT), 0, 1, 1};
