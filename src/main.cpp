@@ -16,36 +16,45 @@
 
 using namespace std;
 
-const string VERTEX_SHADER =
-"#version 330 core \n"
-"layout (location = 0) in vec3 aPos; \n"
-"layout (location = 1) in vec2 aTextureCoord; \n"
-"uniform mat4 mvp; \n"
-"out vec2 TexCoord;"
-"void main() \n"
-"{ \n"
-"   gl_Position = mvp * vec4(aPos.x, aPos.y, aPos.z, 1.0); \n"
-"   TexCoord = aTextureCoord; \n"
-"} \n"
-;
-const string FRAGMENT_SHADER =
-"#version 330 core \n"
-"out vec4 FragColor; \n"
-"in vec2 TexCoord; \n"
-"uniform sampler2D Texture; \n"
-"void main() \n"
-"{ \n"
-"   FragColor = texture(Texture, TexCoord); \n"
-"} \n"
-;
+const string VERTEX_SHADER = R"(
+        #version 330 core
+        layout (location = 0) in vec3 aPos;
+        layout (location = 1) in vec2 aTextureCoord;
+        uniform mat4 mvp;
+        out vec2 TexCoord;
+        void main()
+        {
+           gl_Position = mvp * vec4(aPos.x, aPos.y, aPos.z, 1.0);
+           TexCoord = aTextureCoord;
+        }
+)";
+const string FRAGMENT_SHADER = R"(;
+        #version 330 core
+        out vec4 FragColor;
+        uniform int UseTexture;
+        in vec2 TexCoord;
+        uniform sampler2D Texture;
+        void main()
+        {
+            if(UseTexture >= 1)
+            {
+                FragColor = texture(Texture, TexCoord);
+            }
+            else
+            {
+                FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+            }
+        }
+)";
 
 void WindowSizeCallback(GLFWwindow* window, int width, int height);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void UserInput(GLFWwindow *window);
+void DrawCenterLine(ShaderProgram& shader);
 
-static const unsigned int WINDOW_WIDTH = 1280;
-static const unsigned int WINDOW_HEIGHT = 640;
-static float FOV = 30.f;
+
+static const float WINDOW_WIDTH = 1280.f;
+static const float WINDOW_HEIGHT = 640.f;
 struct Point2D
 {
     Point2D() = default;
@@ -138,10 +147,6 @@ int main(int argc, char* agrv[])
     glBindTexture(GL_TEXTURE_2D, 0);
     stbi_image_free(dataTexture);
 
-    //VAO
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
 
     //render loop
     while(!glfwWindowShouldClose(window))
@@ -152,95 +157,147 @@ int main(int argc, char* agrv[])
 
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
-//matrix
+        //matrix
         glm::mat4 mvp(1.0);
         glm::mat4 world(1.0);
         glm::mat4 frustum(1.0);
 
-        float cameraDistance = 500.f;
-        float surveyAngle = 0;
-        float rFov = std::tan((FOV * 3.14159265 / 180.0) / 2.0);
-        float aspectRatio = WINDOW_WIDTH / WINDOW_HEIGHT;
-        Point2D screenCenterPos(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+
+//        float fov = 30.f;
+//        float cameraDistance = 500.f;
+//        float surveyAngle = 0;
+//        float rFov = std::tan(glm::radians(30.f / 2.f));
+//        float aspectRatio = WINDOW_WIDTH / WINDOW_HEIGHT;
 
 
-        float frustumNear = 100.f;
-        float frustumFar = 1000.f;
-        float frustumLeft = -frustumNear * rFov * aspectRatio;
-        float frustumRight = frustumNear * rFov * aspectRatio;
-        float frustumBottum = -frustumNear * rFov;
-        float frustumTop = frustumNear * rFov;
+//        float frustumNear = 0.1f;
+//        float frustumFar = 1000.f;
+//        float frustumLeft = -frustumNear * rFov * aspectRatio;
+//        float frustumRight = frustumNear * rFov * aspectRatio;
+//        float frustumBottum = -frustumNear * rFov;
+//        float frustumTop = frustumNear * rFov;
 
-        float EyeDistanceY = 0;
-        float EyeDistanceZ = cameraDistance;
+//        float EyeDistanceY = 0;
+//        float EyeDistanceZ = cameraDistance;
 
-        frustum = glm::frustum(frustumLeft, frustumRight, frustumBottum, frustumTop, frustumNear, frustumFar);
+//        frustum = glm::frustum(frustumLeft, frustumRight, frustumBottum, frustumTop, frustumNear, frustumFar);
 
-        world = glm::translate(world, glm::vec3(0.f, EyeDistanceY, -EyeDistanceZ));
-        world = glm::rotate(world, glm::radians(-surveyAngle), glm::vec3(1.f, 0.f, 0.f));
+//        world = glm::translate(world, glm::vec3(0.f, EyeDistanceY, -EyeDistanceZ));
+//        world = glm::rotate(world, glm::radians(-surveyAngle), glm::vec3(1.f, 0.f, 0.f));
 
-        mvp = frustum * world;
+//        mvp = frustum * world;
 
-//算点东西
-        //摄像机坐标 -> 屏幕坐标 输入：frustum上下左右 摄像机距离 屏幕高度
-        auto Y_View_TO_Y_window = [](float Y_view, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance, float screenHeight) -> float
-        {
-            //摄像机Y_view 投影到近景面 Y_near
-            float Y_near = frustumNear * Y_view / cameraDistance;
-            //近景面坐标Y_near映射到Y_clip[-1, 1]
-            float Y_clip = ( 2.f * Y_near / (frustumTop - frustumBottum) ) - ( (frustumTop + frustumBottum) / (frustumTop - frustumBottum) );
-            //裁剪坐标Y_clip映射到Y_windows
-            float Y_window = (1.f - Y_clip) / 2.f * screenHeight;
-            return Y_window;
-        };
-        //摄像机坐标 -> 屏幕坐标 输入：视野角度 摄像机距离 屏幕高度
-        auto Y_View_TO_Y_window_2 = [](float Y_view, float fov, float cameraDistance, float screenHeight) -> float
-        {
-            float rFov = std::tan((fov * 3.14159265 / 180.0) / 2.0);
-            float Y_clip = Y_view / (rFov * cameraDistance);
-            float Y_window = (1.f - Y_clip) / 2.f * screenHeight;
-            return Y_window;
-        };
-        //屏幕坐标 ->摄像机坐标 输入：frustum上下左右 摄像机距离 屏幕高度
-        auto Y_window_TO_Y_View = [](float Y_window, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance, float screenHeight) -> float
-        {
-            //屏幕坐标Y_windows映射到裁剪坐标Y_clip
-            float Y_clip = 1.f - Y_window / screenHeight * 2.f;
-            //裁剪坐标Y_clip[-1, 1]映射到近景面坐标Y_near
-            float Y_near = ( Y_clip + ( (frustumTop + frustumBottum) / (frustumTop - frustumBottum) ) ) * (frustumTop - frustumBottum) / 2.f;
-            //近景面坐标Y_near逆映射到摄像机Y_view
-            float Y_view = Y_near * cameraDistance / frustumNear;
-            return Y_view;
-        };
-        //屏幕坐标 ->摄像机坐标 输入：视野角度 摄像机距离 屏幕高度
-        auto Y_window_TO_Y_View_2 = [](float Y_window, float fov, float cameraDistance, float screenHeight) -> float
-        {
-            float rFov = std::tan((fov * 3.14159265 / 180.0) / 2.0);
-            float Y_clip = 1.f - (Y_window / screenHeight * 2.f);
-            float Y_view = Y_clip * (cameraDistance * rFov);
-            return Y_view;
-        };
-        auto ff = Y_View_TO_Y_window_2(100, 30, 500, 640);
-//vertex
-        PointCoord lt = {-100,  Y_window_TO_Y_View_2(0, FOV, cameraDistance, WINDOW_HEIGHT), 0, 0, 1};
-        PointCoord rt = {100,   Y_window_TO_Y_View_2(0, FOV, cameraDistance, WINDOW_HEIGHT), 0, 1, 1};
-        PointCoord rb = {100,   Y_window_TO_Y_View_2(640, FOV, cameraDistance, WINDOW_HEIGHT), 0, 1, 0};
-        PointCoord lb = {-100,  Y_window_TO_Y_View_2(640, FOV, cameraDistance, WINDOW_HEIGHT), 0, 0, 0};
-
+        //vertex
+        PointCoord lt = {-100,  100, 0, 0, 1};
+        PointCoord rt = {100,   100, 0, 1, 1};
+        PointCoord rb = {100,   0, 0, 1, 0};
+        PointCoord lb = {-100,  0, 0, 0, 0};
         vector<PointCoord> vertex;
         vertex.reserve(4);
-        vertex.emplace_back(lb);
-        vertex.emplace_back(rb);
-        vertex.emplace_back(rt);
         vertex.emplace_back(lt);
+        vertex.emplace_back(rt);
+        vertex.emplace_back(rb);
+        vertex.emplace_back(lb);
+//摄像机坐标到屏幕坐标
+//==================================================================================================================================================================================
 
+        auto ViewTOWindow_X_LRN = [](float view, float frustumLeft, float frustumRight, float frustumNear, float cameraDistance, float screenWidth) -> float
+        {
+            //摄像机 -> 近景面
+            float near = frustumNear * view / cameraDistance;
+            //近景面 -> 裁剪[-1, 1]
+            float clip = ( 2.f * near / (frustumLeft - frustumRight) ) - ( (frustumLeft + frustumRight) / (frustumLeft - frustumRight) );
+            //裁剪 -> 屏幕
+            float window = (1.f - clip) / 2.f * screenWidth;
+            return window;
+        };
+        auto ViewTOWindow_X_FOV = [](float view, float fov, float cameraDistance, float screenWidth, float aspectRatio) -> float
+        {
+            /*
+             *
+             * 摄像机 -> 近景面
+             * near = frustumNear * view / cameraDistance
+             * 已知 近景面 [frustumLeft, frustumRight] -> 裁剪 [-1, 1] 满足下面等式
+             * clip = (2.f * near / (frustumLeft - frustumRight)) - ((frustumLeft + frustumRight) / (frustumLeft - frustumRight))
+             * 因为 frustumLeftRight = frustumLeft = -frustumRight，带入上面等式，得到
+             * clip = near / frustumLeftRight;
+             * 将 near 带入上面的等式，得到
+             * clip = (frustumNear / frustumLeftRight) * (view / cameraDistance)
+             * 因为 frustumLeftRight = frustumBottomTop * aspectRatio，带入上面等式，得到
+             * clip = (frustumNear / frustumBottomTop * aspectRatio) * (view / cameraDistance)
+             * 因为 frustumNear / frustumBottomTop = 1 / tan(fov / 2.f)， 带入上面的等式， 得到
+             * clip = view / (tan(fov / 2.f) * aspectRatio * cameraDistance)
+            */
+            float clip = view / (tan(glm::radians(fov / 2.f)) * aspectRatio * cameraDistance);
+            float window = (1.f - clip) / 2.f * screenWidth;
+            return window;
+        };
+        auto ViewTOWindow_Y_BTN = [](float view, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance, float screenHeight) -> float
+        {
+            //摄像机 -> 近景面
+            float near = frustumNear * view / cameraDistance;
+            //近景面 -> 裁剪[-1, 1]
+            float clip = (2.f * near / (frustumTop - frustumBottum)) - ((frustumTop + frustumBottum) / (frustumTop - frustumBottum));
+            //裁剪 -> 屏幕
+            float window = (1.f - clip) / 2.f * screenHeight;
+            return window;
+        };
+        auto ViewTOWindow_Y_FOV = [](float view, float fov, float cameraDistance, float screenHeight) -> float
+        {
+            /*
+             * 摄像机 -> 近景面
+             * near = frustumNear * view / cameraDistance
+             * 已知 近景面 [frustumBottum, frustumTop] -> 裁剪 [-1, 1] 满足下面等式
+             * clip = (2.f * near / (frustumTop - frustumBottum)) - ((frustumTop + frustumBottum) / (frustumTop - frustumBottum))
+             * 因为 frustumBottomTop = frustumTop = -frustumBottum，带入上面的等式，得到
+             * clip = near / frustumBottomTop
+             * 将 near 带入上面的等式，得到
+             * clip = (frustumNear / frustumBottomTop) * (view / cameraDistance)
+             * 因为 frustumNear / frustumBottomTop = 1 / tan(fov / 2.f)， 带入上面的等式， 得到
+             * clip = view / (tan(fov / 2.f) * cameraDistance)
+            */
+            float clip = view / (tan(glm::radians(fov / 2.f)) * cameraDistance);
+            float window = (1.f - clip) / 2.f * screenHeight;
+            return window;
+        };
+        mvp = glm::ortho(0.f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.f, -1.f, 1.f);//使用正交直接按照屏幕坐标描画
+        //两种定义摄像机方式
+#if 0
+        //A => ①距离 ②视野开角
+        float distance = 500.f;
+        float fov = 30.f;
+        //将摄像机坐标映射为屏幕坐标
+        for(auto& v : vertex)
+        {
+            v.x = ViewTOWindow_X_FOV(v.x, fov, distance, WINDOW_WIDTH, WINDOW_WIDTH / WINDOW_HEIGHT);
+            v.y = ViewTOWindow_Y_FOV(v.y, fov, distance, WINDOW_HEIGHT);
+        }
+#else
+        //A => ①距离 ②近景面距离 ③近景面上 ④近景面下 ⑤近景面左 ⑥近景面右
+        float distance = 500.f;
+        float near = 0.1f;
+        float left = -0.0535898395f;
+        float right = 0.0535898395f;
+        float bottom = -0.0267949197f;
+        float top = 0.0267949197f;
+        //将摄像机坐标映射为屏幕坐标
+        for(auto& v : vertex)
+        {
+            v.x = ViewTOWindow_X_LRN(v.x, left, right, near, distance, WINDOW_WIDTH);
+            v.y = ViewTOWindow_Y_BTN(v.y, bottom, top, near, distance, WINDOW_HEIGHT);
+        }
+#endif
+//==================================================================================================================================================================================
+        unsigned int VAO;
+        glGenVertexArrays(1, &VAO);
+        glBindVertexArray(VAO);
         unsigned int VBOvertex;
         glGenBuffers(1, &VBOvertex);
         glBindBuffer(GL_ARRAY_BUFFER, VBOvertex);
         glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vertex[0]), (void*)&vertex[0], GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-//render
-        shader.SetIntValue("Texture", 0);
+        //render
+        shader.SetIntValue("UseTexture", 1);
         shader.SetMatrixValue("mvp", glm::value_ptr(mvp));;
 
         glActiveTexture(GL_TEXTURE0);
@@ -254,13 +311,16 @@ int main(int argc, char* agrv[])
         glBindTexture(GL_TEXTURE_2D, texture);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertex.size());
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
         glDeleteBuffers(1, &VBOvertex);
+        glDeleteVertexArrays(1, &VAO);
+        DrawCenterLine(shader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     //clean
-    glDeleteVertexArrays(1, &VAO);
+
     glDeleteTextures(1, &texture);
 
     glfwTerminate();
@@ -284,11 +344,56 @@ void WindowSizeCallback(GLFWwindow* window, int width, int height)
 
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
-  if(FOV >= 1.0f && FOV <= 45.0f)
-    FOV -= yoffset;
-  if(FOV <= 1.0f)
-    FOV = 1.0f;
-  if(FOV >= 45.0f)
-    FOV = 45.0f;
+//  if(FOV >= 1.0f && FOV <= 45.0f)
+//    FOV -= yoffset;
+//  if(FOV <= 1.0f)
+//    FOV = 1.0f;
+//  if(FOV >= 45.0f)
+//    FOV = 45.0f;
 }
 
+void DrawCenterLine(ShaderProgram& shader)
+{
+    glm::mat4 mvp(1.0);
+    mvp = glm::ortho(0.f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.f, -1.f, 1.f);
+    shader.StartUse();
+    shader.SetIntValue("UseTexture", 0);
+    shader.SetMatrixValue("mvp", glm::value_ptr(mvp));
+
+    //水平线
+    float LineH[] =
+    {
+        0, WINDOW_HEIGHT / 2.f, 0,
+        WINDOW_WIDTH, WINDOW_HEIGHT / 2.f, 0
+    };
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    unsigned int VBOLineH;
+    glGenBuffers(1, &VBOLineH);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOLineH);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(LineH), (void*)LineH, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof (float) * 3, 0);
+    glDrawArrays(GL_LINES, 0, 2);
+    //垂直线
+    float LineV[] =
+    {
+        WINDOW_WIDTH / 2.f, 0, 0,
+        WINDOW_WIDTH / 2.f, WINDOW_HEIGHT, 0
+    };
+    unsigned int VBOLineV;
+    glGenBuffers(1, &VBOLineV);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOLineV);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(LineV), (void*)LineV, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof (float) * 3, 0);
+    glDrawArrays(GL_LINES, 0, 2);
+
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &VBOLineH);
+    glDeleteBuffers(1, &VBOLineV);
+    glDeleteVertexArrays(1, &VAO);
+}
