@@ -1,17 +1,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+near = 1
+far = 1000
 # 生成x值
-x = np.arange(-500, 500, 0.1)
+x = np.arange(-far, -near, 1)
 
 # 计算y值
-y = (1 - (x / (0.2679 * 500))) * 0.5 * 640
-
+y = 2.0 * far * near / (x * (far - near)) + (near + far) / (far - near)
 # 绘制图像
 plt.plot(x, y)
 
 # 添加标题和轴标签
-plt.title('y = x * x')
+plt.title('depth')
 plt.xlabel('x')
 plt.ylabel('y')
 

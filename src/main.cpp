@@ -160,11 +160,11 @@ int main(int argc, char* agrv[])
         //matrix
         glm::mat4 mvp(1.0);
 
-        //vertex
-        PointCoord lt = {-100,  100, 0, 0, 1};
-        PointCoord rt = {100,   100, 0, 1, 1};
-        PointCoord rb = {100,   0, 0, 1, 0};
-        PointCoord lb = {-100,  0, 0, 0, 0};
+        //摄像机坐标
+        PointCoord lt = {-100,  100, -500, 0, 1};
+        PointCoord rt = {100,   100, -500, 1, 1};
+        PointCoord rb = {100,   0, -500, 1, 0};
+        PointCoord lb = {-100,  0, -500, 0, 0};
         vector<PointCoord> vertex;
         vertex.reserve(4);
         vertex.emplace_back(lt);
@@ -174,10 +174,10 @@ int main(int argc, char* agrv[])
 
 //摄像机坐标到屏幕坐标
 //==================================================================================================================================================================================
-        auto ViewTOWindow_X_LRN = [](float view, float frustumLeft, float frustumRight, float frustumNear, float cameraDistance, float screenWidth) -> float
+        auto ViewTOWindow_X_LRN = [](float view, float frustumLeft, float frustumRight, float frustumNear, float z, float screenWidth) -> float
         {
             //摄像机 -> 近景面
-            float near = frustumNear * view / cameraDistance;
+            float near = frustumNear * view / -z;
             //近景面 -> 裁剪[-1, 1]
             float clip = ( 2.f * near / (frustumLeft - frustumRight) ) - ( (frustumLeft + frustumRight) / (frustumLeft - frustumRight) );
             //裁剪 -> 屏幕
@@ -205,10 +205,10 @@ int main(int argc, char* agrv[])
             float window = (1.f - clip) / 2.f * screenWidth;
             return window;
         };
-        auto ViewTOWindow_Y_BTN = [](float view, float frustumBottum, float frustumTop, float frustumNear, float cameraDistance, float screenHeight) -> float
+        auto ViewTOWindow_Y_BTN = [](float view, float frustumBottum, float frustumTop, float frustumNear, float z, float screenHeight) -> float
         {
             //摄像机 -> 近景面
-            float near = frustumNear * view / cameraDistance;
+            float near = frustumNear * view / -z;
             //近景面 -> 裁剪[-1, 1]
             float clip = (2.f * near / (frustumTop - frustumBottum)) - ((frustumTop + frustumBottum) / (frustumTop - frustumBottum));
             //裁剪 -> 屏幕
@@ -224,7 +224,8 @@ int main(int argc, char* agrv[])
              * clip = (2.f * near / (frustumTop - frustumBottum)) - ((frustumTop + frustumBottum) / (frustumTop - frustumBottum))
              * 因为 frustumBottomTop = frustumTop = -frustumBottum，带入上面的等式，得到
              * clip = near / frustumBottomTop
-             * 将 near 带入上面的等式，得到
+             * 将 near 带入上面的等式，得到崔额
+             * 0
              * clip = (frustumNear / frustumBottomTop) * (view / cameraDistance)
              * 因为 frustumNear / frustumBottomTop = 1 / tan(fov / 2.f)， 带入上面的等式， 得到
              * clip = view / (tan(fov / 2.f) * cameraDistance)
@@ -233,10 +234,20 @@ int main(int argc, char* agrv[])
             float window = (1.f - clip) / 2.f * screenHeight;
             return window;
         };
+        auto ViewTOWindow_Z = [](float view, float near, float far) -> float
+        {
+            //摄像机 [n, f] -> [-1, 1]
+//            float clip = 2.f * view / (near - far) + (near + far) / (near - far);
+            float clip = 2.f * far * near / (view * (far - near)) + (near + far) / (far - near);
+            return clip;
+        };
+
         mvp = glm::ortho(0.f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.f, -1.f, 1.f);//使用正交直接按照屏幕坐标描画
         //两种定义摄像机方式
-#if 0
+#if 1
         //A => ①距离 ②视野开角
+        float near = 0.1f;
+        float far = 1000.f;
         float distance = 500.f;
         float fov = 30.f;
         //将摄像机坐标映射为屏幕坐标
@@ -244,11 +255,12 @@ int main(int argc, char* agrv[])
         {
             v.x = ViewTOWindow_X_FOV(v.x, fov, distance, WINDOW_WIDTH, WINDOW_WIDTH / WINDOW_HEIGHT);
             v.y = ViewTOWindow_Y_FOV(v.y, fov, distance, WINDOW_HEIGHT);
+            v.z = ViewTOWindow_Z(v.z, near, far);
         }
 #else
         //A => ①距离 ②近景面距离 ③近景面上 ④近景面下 ⑤近景面左 ⑥近景面右
-        float distance = 500.f;
         float near = 0.1f;
+        float far = 1000.f;
         float left = -0.0535898395f;
         float right = 0.0535898395f;
         float bottom = -0.0267949197f;
@@ -256,8 +268,9 @@ int main(int argc, char* agrv[])
         //将摄像机坐标映射为屏幕坐标
         for(auto& v : vertex)
         {
-            v.x = ViewTOWindow_X_LRN(v.x, left, right, near, distance, WINDOW_WIDTH);
-            v.y = ViewTOWindow_Y_BTN(v.y, bottom, top, near, distance, WINDOW_HEIGHT);
+            v.x = ViewTOWindow_X_LRN(v.x, left, right, near, v.z, WINDOW_WIDTH);
+            v.y = ViewTOWindow_Y_BTN(v.y, bottom, top, near, v.z, WINDOW_HEIGHT);
+            v.z = ViewTOWindow_Z(v.z, near, far);
         }
 #endif
 //==================================================================================================================================================================================
