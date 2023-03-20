@@ -154,38 +154,11 @@ int main(int argc, char* agrv[])
         UserInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
+
         //matrix
         glm::mat4 mvp(1.0);
-        glm::mat4 world(1.0);
-        glm::mat4 frustum(1.0);
-
-
-//        float fov = 30.f;
-//        float cameraDistance = 500.f;
-//        float surveyAngle = 0;
-//        float rFov = std::tan(glm::radians(30.f / 2.f));
-//        float aspectRatio = WINDOW_WIDTH / WINDOW_HEIGHT;
-
-
-//        float frustumNear = 0.1f;
-//        float frustumFar = 1000.f;
-//        float frustumLeft = -frustumNear * rFov * aspectRatio;
-//        float frustumRight = frustumNear * rFov * aspectRatio;
-//        float frustumBottum = -frustumNear * rFov;
-//        float frustumTop = frustumNear * rFov;
-
-//        float EyeDistanceY = 0;
-//        float EyeDistanceZ = cameraDistance;
-
-//        frustum = glm::frustum(frustumLeft, frustumRight, frustumBottum, frustumTop, frustumNear, frustumFar);
-
-//        world = glm::translate(world, glm::vec3(0.f, EyeDistanceY, -EyeDistanceZ));
-//        world = glm::rotate(world, glm::radians(-surveyAngle), glm::vec3(1.f, 0.f, 0.f));
-
-//        mvp = frustum * world;
 
         //vertex
         PointCoord lt = {-100,  100, 0, 0, 1};
@@ -198,9 +171,9 @@ int main(int argc, char* agrv[])
         vertex.emplace_back(rt);
         vertex.emplace_back(rb);
         vertex.emplace_back(lb);
+
 //摄像机坐标到屏幕坐标
 //==================================================================================================================================================================================
-
         auto ViewTOWindow_X_LRN = [](float view, float frustumLeft, float frustumRight, float frustumNear, float cameraDistance, float screenWidth) -> float
         {
             //摄像机 -> 近景面
