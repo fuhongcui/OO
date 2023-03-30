@@ -7,7 +7,8 @@
 #include <iostream>
 #include <vector>
 #include "Shader.h"
-
+#include "ViewWindowConv.h"
+#include "TextureManger.h"
 #if defined(_WIN32)
 #define SEPERATOR ("\\")
 #else
@@ -114,9 +115,7 @@ int main(int argc, char* agrv[])
         return -1;
     }
     //Texture
-    int width = 0;
-    int height = 0;
-    int nrChannels = 0;
+    TextureManger textureManger;
 
     string textureBasePath = agrv[0];
     auto dotPos = textureBasePath.find_last_of(SEPERATOR);
@@ -126,28 +125,14 @@ int main(int argc, char* agrv[])
     }
     textureBasePath += "res";
     textureBasePath += SEPERATOR;
-
-
     string texture1Path = textureBasePath + "1.jpg";
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char *dataTexture = stbi_load(texture1Path.c_str(), &width, &height, &nrChannels, 0);
-    if(!dataTexture)
+    TextureParam param;
+    auto texture = textureManger.Create(texture1Path, param);
+    if(!texture)
     {
+        glfwTerminate();
         return -1;
     }
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, width, height, 0, nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, dataTexture);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    stbi_image_free(dataTexture);
-
-
     //render loop
     while(!glfwWindowShouldClose(window))
     {
@@ -174,74 +159,6 @@ int main(int argc, char* agrv[])
 
 //摄像机坐标到屏幕坐标
 //==================================================================================================================================================================================
-        auto ViewTOWindow_X_LRN = [](float view, float frustumLeft, float frustumRight, float frustumNear, float z, float screenWidth) -> float
-        {
-            //摄像机 -> 近景面
-            float near = frustumNear * view / -z;
-            //近景面 -> 裁剪[-1, 1]
-            float clip = ( 2.f * near / (frustumLeft - frustumRight) ) - ( (frustumLeft + frustumRight) / (frustumLeft - frustumRight) );
-            //裁剪 -> 屏幕
-            float window = (1.f - clip) / 2.f * screenWidth;
-            return window;
-        };
-        auto ViewTOWindow_X_FOV = [](float view, float fov, float cameraDistance, float screenWidth, float aspectRatio) -> float
-        {
-            /*
-             *
-             * 摄像机 -> 近景面
-             * near = frustumNear * view / cameraDistance
-             * 已知 近景面 [frustumLeft, frustumRight] -> 裁剪 [-1, 1] 满足下面等式
-             * clip = (2.f * near / (frustumLeft - frustumRight)) - ((frustumLeft + frustumRight) / (frustumLeft - frustumRight))
-             * 因为 frustumLeftRight = frustumLeft = -frustumRight，带入上面等式，得到
-             * clip = near / frustumLeftRight;
-             * 将 near 带入上面的等式，得到
-             * clip = (frustumNear / frustumLeftRight) * (view / cameraDistance)
-             * 因为 frustumLeftRight = frustumBottomTop * aspectRatio，带入上面等式，得到
-             * clip = (frustumNear / frustumBottomTop * aspectRatio) * (view / cameraDistance)
-             * 因为 frustumNear / frustumBottomTop = 1 / tan(fov / 2.f)， 带入上面的等式， 得到
-             * clip = view / (tan(fov / 2.f) * aspectRatio * cameraDistance)
-            */
-            float clip = view / (tan(glm::radians(fov / 2.f)) * aspectRatio * cameraDistance);
-            float window = (1.f - clip) / 2.f * screenWidth;
-            return window;
-        };
-        auto ViewTOWindow_Y_BTN = [](float view, float frustumBottum, float frustumTop, float frustumNear, float z, float screenHeight) -> float
-        {
-            //摄像机 -> 近景面
-            float near = frustumNear * view / -z;
-            //近景面 -> 裁剪[-1, 1]
-            float clip = (2.f * near / (frustumTop - frustumBottum)) - ((frustumTop + frustumBottum) / (frustumTop - frustumBottum));
-            //裁剪 -> 屏幕
-            float window = (1.f - clip) / 2.f * screenHeight;
-            return window;
-        };
-        auto ViewTOWindow_Y_FOV = [](float view, float fov, float cameraDistance, float screenHeight) -> float
-        {
-            /*
-             * 摄像机 -> 近景面
-             * near = frustumNear * view / cameraDistance
-             * 已知 近景面 [frustumBottum, frustumTop] -> 裁剪 [-1, 1] 满足下面等式
-             * clip = (2.f * near / (frustumTop - frustumBottum)) - ((frustumTop + frustumBottum) / (frustumTop - frustumBottum))
-             * 因为 frustumBottomTop = frustumTop = -frustumBottum，带入上面的等式，得到
-             * clip = near / frustumBottomTop
-             * 将 near 带入上面的等式，得到崔额
-             * 0
-             * clip = (frustumNear / frustumBottomTop) * (view / cameraDistance)
-             * 因为 frustumNear / frustumBottomTop = 1 / tan(fov / 2.f)， 带入上面的等式， 得到
-             * clip = view / (tan(fov / 2.f) * cameraDistance)
-            */
-            float clip = view / (tan(glm::radians(fov / 2.f)) * cameraDistance);
-            float window = (1.f - clip) / 2.f * screenHeight;
-            return window;
-        };
-        auto ViewTOWindow_Z = [](float view, float near, float far) -> float
-        {
-            //摄像机 [n, f] -> [-1, 1]
-//            float clip = 2.f * view / (near - far) + (near + far) / (near - far);
-            float clip = 2.f * far * near / (view * (far - near)) + (near + far) / (far - near);
-            return clip;
-        };
-
         mvp = glm::ortho(0.f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.f, -1.f, 1.f);//使用正交直接按照屏幕坐标描画
         //两种定义摄像机方式
 #if 1
@@ -253,9 +170,9 @@ int main(int argc, char* agrv[])
         //将摄像机坐标映射为屏幕坐标
         for(auto& v : vertex)
         {
-            v.x = ViewTOWindow_X_FOV(v.x, fov, distance, WINDOW_WIDTH, WINDOW_WIDTH / WINDOW_HEIGHT);
-            v.y = ViewTOWindow_Y_FOV(v.y, fov, distance, WINDOW_HEIGHT);
-            v.z = ViewTOWindow_Z(v.z, near, far);
+            v.x = ViewWindowConv::ViewTOWindow_X_FOV(v.x, fov, distance, WINDOW_WIDTH, WINDOW_WIDTH / WINDOW_HEIGHT);
+            v.y = ViewWindowConv::ViewTOWindow_Y_FOV(v.y, fov, distance, WINDOW_HEIGHT);
+            v.z = ViewWindowConv::ViewTOWindow_Z(v.z, near, far);
         }
 #else
         //A => ①距离 ②近景面距离 ③近景面上 ④近景面下 ⑤近景面左 ⑥近景面右
@@ -286,15 +203,13 @@ int main(int argc, char* agrv[])
         shader.SetIntValue("UseTexture", 1);
         shader.SetMatrixValue("mvp", glm::value_ptr(mvp));;
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        texture->Bind(GL_TEXTURE0);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBOvertex);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex[0]), (void*)0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex[0]), (void*)(3 * sizeof (float)));
-        glBindTexture(GL_TEXTURE_2D, texture);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertex.size());
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
@@ -305,9 +220,6 @@ int main(int argc, char* agrv[])
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    //clean
-
-    glDeleteTextures(1, &texture);
 
     glfwTerminate();
     return 0;
