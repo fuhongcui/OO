@@ -80,7 +80,7 @@ float GLConv::Caramer_to_NDC_Y_FOV(float y, float z, float fov)
         float ndc = ((frustumNear * y / (-z)) / frustumTop); ④
         
     5.已知 std::tan(DegreeTORadius(fov / 2.f) = frustumBottomTop / frustumNear, 带入 ④, 得到
-        ffloat ndc = y / (std::tan(DegreeTORadius(fov / 2.f)) * (-z));
+        float ndc = y / (std::tan(DegreeTORadius(fov / 2.f)) * (-z));
     */
     float ndc = y / (std::tan(Degree_to_Radian(fov / 2.f)) * (-z));
     
