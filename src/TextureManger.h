@@ -81,12 +81,13 @@ struct Texture
 class TextureManger
 {
 public:
-    TextureManger();
+    TextureManger(const char* executePath);
     ~TextureManger();
 public:
-    std::shared_ptr<Texture> Create(const std::string& textureName, const TextureParam& param);
+    std::shared_ptr<Texture> Get(const std::string& textureName, const TextureParam& param = TextureParam());
 private:
     std::map<TextureKey, std::shared_ptr<Texture>> m_texture;
+    std::string m_exe_path { "" };
 };
 
 #endif // TEXTUREMANGER_H

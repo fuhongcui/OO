@@ -2,13 +2,16 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include "Shader.h"
-ShaderProgram::ShaderProgram(const std::string& v, const std::string& f)
+ShaderProgram::ShaderProgram(const std::string& name, const std::string& v, const std::string& f)
 :m_ProgramID(0)
 ,m_strVertex(v)
 ,m_strFragment(f)
-,m_bHaveInit(false)
+,m_strName(name)
 {
-
+    if(!Compile())
+    {
+        std::cout << "Shader:[" << name << "] compile error !" <<  std::endl;
+    }
 }
 
 ShaderProgram::~ShaderProgram()
@@ -62,27 +65,18 @@ bool ShaderProgram::Compile()
     return true;
 }
 
- bool ShaderProgram::StartUse()
- {
-    if(!m_bHaveInit)
-    {
-        if(!Compile())
-        {
-            return false;
-        }
-        m_bHaveInit = true;
-    }
-    glUseProgram(m_ProgramID);
-    return true;
- }
- void ShaderProgram::SetIntValue(const std::string& strName, int iValue)
- {
-    int iLocation = glGetUniformLocation(m_ProgramID, strName.c_str());
-    glUniform1i(iLocation, iValue);
- }
+void ShaderProgram::Bind()
+{
+   glUseProgram(m_ProgramID);
+}
+void ShaderProgram::SetIntValue(const std::string& strName, int iValue)
+{
+   int iLocation = glGetUniformLocation(m_ProgramID, strName.c_str());
+   glUniform1i(iLocation, iValue);
+}
 
- void ShaderProgram::SetMatrixValue(const std::string& strName, const float* fvalue)
- {
-     int iLocation = glGetUniformLocation(m_ProgramID, strName.c_str());
-     glUniformMatrix4fv(iLocation, 1, GL_FALSE, fvalue);
- }
+void ShaderProgram::SetMatrixValue(const std::string& strName, const float* fvalue)
+{
+    int iLocation = glGetUniformLocation(m_ProgramID, strName.c_str());
+    glUniformMatrix4fv(iLocation, 1, GL_FALSE, fvalue);
+}

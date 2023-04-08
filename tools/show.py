@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 near = 1
-far = 1000
+far = 500
 # 生成x值
-x = np.arange(-far, -near, 1)
+x = np.arange(-far, -near, 0.1)
 
 # 计算y值
 y = 2.0 * far * near / (x * (far - near)) + (near + far) / (far - near)
