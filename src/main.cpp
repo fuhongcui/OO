@@ -52,7 +52,7 @@ int main(int argc, char* agrv[])
         return -1;
     }
     //摄像机坐标;
-    vector<Point3DUV> vertex = 
+    vector<Point3DUV> vertex =
     {
         {-100, 100, -500, 0, 1},
         { 100, 100, -500, 1, 1},
@@ -63,26 +63,26 @@ int main(int argc, char* agrv[])
     //摄像机坐标到NDC
     //两种定义摄像机方式
 #if 1
-    float near = 0.1f;
-    float far = 1000.f;
-    float fov = 30.f;
+    float frustumNear = 0.1f;
+    float frustumfar = 1000.f;
+    float frustumfov = 30.f;
     float aspectRatio = static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT;
     //将摄像机坐标投影为NDC
     for(auto& v : vertex)
     {
-        GLConv::Perspective(v.x, v.y, v.z, fov, near, far, aspectRatio);
+        GLConv::Perspective(v.x, v.y, v.z, frustumfov, frustumNear, frustumfar, aspectRatio);
     }
 #else
-    float near = 0.1f;
-    float far = 1000.f;
-    float left = -0.0535898395f;
-    float right = 0.0535898395f;
-    float bottom = -0.0267949197f;
-    float top = 0.0267949197f;
+    float frustumnear = 0.1f;
+    float frustumfar = 1000.f;
+    float frustumleft = -0.0535898395f;
+    float frustumright = 0.0535898395f;
+    float frustumbottom = -0.0267949197f;
+    float frustumtop = 0.0267949197f;
     //将摄像机坐标投影为NDC
     for(auto& v : vertex)
     {
-        GLConv::Perspective(v.x, v.y, v.z, left, right, bottom, top, near, far);
+        GLConv::Perspective(v.x, v.y, v.z, frustumleft, frustumright, frustumbottom, frustumtop, frustumnear, frustumfar);
     }
 #endif
     
