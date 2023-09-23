@@ -45,11 +45,11 @@ void Display(GLFWwindow *window, GLuint shderProgram, GLuint dataVBO)
 {
     glUseProgram(shderProgram);
     glm::mat4 matrix_model(1.f);
-    matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -2.f, 0.f));
+    matrix_model = glm::rotate(matrix_model, glm::radians(-75.f), glm::vec3(1.f, 0.f, 0.f));
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_model"), 1, GL_FALSE, glm::value_ptr(matrix_model));
 
     glm::mat4 matrix_view(1.f);
-    matrix_view = glm::translate(matrix_view, glm::vec3(0.f, 0.f, -8.f));
+    matrix_view = glm::translate(matrix_view, glm::vec3(0.f, 0.f, -150.f));
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_view"), 1, GL_FALSE, glm::value_ptr(matrix_view));
 
     glm::mat4 matrix_project(1.f);
@@ -57,7 +57,7 @@ void Display(GLFWwindow *window, GLuint shderProgram, GLuint dataVBO)
     int windowheight = 0;
     glfwGetFramebufferSize(window, &windowWidth, &windowheight);
     float aspect = (float)windowWidth / (float)windowheight;
-    matrix_project = glm::perspective(glm::radians(60.f), aspect, 0.1f, 1000.0f);
+    matrix_project = glm::perspective(glm::radians(30.f), aspect, 0.1f, 1000.0f);
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_project"), 1, GL_FALSE, glm::value_ptr(matrix_project));
 
     glBindBuffer(GL_ARRAY_BUFFER, dataVBO);
@@ -65,24 +65,15 @@ void Display(GLFWwindow *window, GLuint shderProgram, GLuint dataVBO)
     glEnableVertexAttribArray(0);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void MakeRenderData(GLuint& dataVBO)
 {
-    float vertexPositions[108] = {
-        -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,
-        -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f
+    float length = 99999.f;
+    float vertexPositions[] = {
+                               -10.f, -length, 0.f, 10.f, -length, 0.f, 10.f, length, 0.f,
+                                -10.f, -length, 0.f, 10.f, length, 0.f, -10.f, length, 0.f
     };
     glGenBuffers(1, &dataVBO);
     glBindBuffer(GL_ARRAY_BUFFER, dataVBO);
@@ -92,11 +83,15 @@ void MakeRenderData(GLuint& dataVBO)
 
 bool InitWindow(GLFWwindow*& window)
 {
+    auto windowSizeChangeCallback = [](GLFWwindow* window, int w, int h)
+    {
+        glViewport(0, 0, w, h);
+    };
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    window = glfwCreateWindow(600, 300, "HAHA", nullptr, nullptr);
+    window = glfwCreateWindow(1920, 270, "HAHA", nullptr, nullptr);
     if (window == nullptr)
     {
         glfwTerminate();
@@ -108,6 +103,7 @@ bool InitWindow(GLFWwindow*& window)
         glfwTerminate();
         return false;
     }
+    glfwSetWindowSizeCallback(window, windowSizeChangeCallback);
     return true;
 }
 
@@ -128,7 +124,7 @@ bool InitShader(GLuint& shderProgram)
         "out vec4 color;"
         "void main()"
         "{"
-        "   color = vec4(0.0, 0.0, 1.0, 1.0);"
+        "   color = vec4(93.0 / 255.0, 114.0 / 255.0, 138.0 / 255.0, 1.0);"
         "}";
     auto CheckShader = [](GLuint shader)
     {
