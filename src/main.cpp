@@ -1,4 +1,5 @@
 #include <cstring>
+#include <cmath>
 #include <memory>
 #include <iostream>
 #include <glad/glad.h>
@@ -10,6 +11,7 @@
 
 bool InitWindow(GLFWwindow*& window);
 bool InitShader(GLuint& shderProgram);
+void MakeMatrix(GLFWwindow* window, glm::mat4& matrix_model, glm::mat4& matrix_view, glm::mat4& matrix_project);
 void MakeRenderData(GLuint& dataVBO);
 void Display(GLFWwindow* window, GLuint shderProgram, GLuint dataVBO);
 int main(int argc, char* agrv[])
@@ -45,19 +47,11 @@ void Display(GLFWwindow *window, GLuint shderProgram, GLuint dataVBO)
 {
     glUseProgram(shderProgram);
     glm::mat4 matrix_model(1.f);
-    matrix_model = glm::rotate(matrix_model, glm::radians(-75.f), glm::vec3(1.f, 0.f, 0.f));
-    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_model"), 1, GL_FALSE, glm::value_ptr(matrix_model));
-
     glm::mat4 matrix_view(1.f);
-    matrix_view = glm::translate(matrix_view, glm::vec3(0.f, 0.f, -150.f));
-    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_view"), 1, GL_FALSE, glm::value_ptr(matrix_view));
-
     glm::mat4 matrix_project(1.f);
-    int windowWidth = 0;
-    int windowheight = 0;
-    glfwGetFramebufferSize(window, &windowWidth, &windowheight);
-    float aspect = (float)windowWidth / (float)windowheight;
-    matrix_project = glm::perspective(glm::radians(30.f), aspect, 0.1f, 1000.0f);
+    MakeMatrix(window, matrix_model, matrix_view, matrix_project);
+    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_model"), 1, GL_FALSE, glm::value_ptr(matrix_model));
+    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_view"), 1, GL_FALSE, glm::value_ptr(matrix_view));
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_project"), 1, GL_FALSE, glm::value_ptr(matrix_project));
 
     glBindBuffer(GL_ARRAY_BUFFER, dataVBO);
@@ -68,12 +62,23 @@ void Display(GLFWwindow *window, GLuint shderProgram, GLuint dataVBO)
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+void MakeMatrix(GLFWwindow* window, glm::mat4& matrix_model, glm::mat4& matrix_view, glm::mat4& matrix_project)
+{
+//    matrix_model = glm::rotate(matrix_model, glm::radians(-75.f), glm::vec3(1.f, 0.f, 0.f));
+    matrix_view = glm::translate(matrix_view, glm::vec3(0.f, 0.f, -201.f));
+    int windowWidth = 0;
+    int windowheight = 0;
+    glfwGetFramebufferSize(window, &windowWidth, &windowheight);
+    float aspect = (float)windowWidth / (float)windowheight;
+    matrix_project = glm::perspective(float(std::atan(0.5) * 2.f), aspect, 0.1f, 1000.0f);
+
+}
 void MakeRenderData(GLuint& dataVBO)
 {
-    float length = 99999.f;
+    float length = 100.f;
     float vertexPositions[] = {
-                               -10.f, -length, 0.f, 10.f, -length, 0.f, 10.f, length, 0.f,
-                                -10.f, -length, 0.f, 10.f, length, 0.f, -10.f, length, 0.f
+                               -100.f, -length, 0.f, 100.f, -length, 0.f, 100.f, length, 0.f,
+                                -100.f, -length, 0.f, 100.f, length, 0.f, -100.f, length, 0.f
     };
     glGenBuffers(1, &dataVBO);
     glBindBuffer(GL_ARRAY_BUFFER, dataVBO);
@@ -91,7 +96,7 @@ bool InitWindow(GLFWwindow*& window)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    window = glfwCreateWindow(1920, 270, "HAHA", nullptr, nullptr);
+    window = glfwCreateWindow(800, 800, "HAHA", nullptr, nullptr);
     if (window == nullptr)
     {
         glfwTerminate();
