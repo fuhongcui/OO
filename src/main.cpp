@@ -98,7 +98,7 @@ void Display(GLFWwindow *window, GLuint shderProgram)
 glm::mat4 MakeModelMatrix()
 {
     glm::mat4 matrix = glm::mat4(1.f);
-//    matrix = glm::rotate(matrix, -glm::radians(70.f), glm::vec3(1.f, 0.f, 0.f));
+    matrix = glm::rotate(matrix, -glm::radians(70.f), glm::vec3(1.f, 0.f, 0.f));
     return matrix;
 }
 glm::mat4 MakeViewMatrix()
