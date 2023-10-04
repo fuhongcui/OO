@@ -69,7 +69,7 @@ void Display(GLFWwindow *window, GLuint shderProgram)
     glm::mat4 matrix_screen = glm::ortho(0.f, 0.f + window_width, 0.f + window_heigth, 0.f, -1.f, 1.f);
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_project"), 1, GL_FALSE, glm::value_ptr(matrix_screen));
     //矩形框
-    constexpr float width = 26.79492f - 2.f;
+    constexpr float width = 26.79492f;
     glm::vec3 v0(-width, -width, 0.f);
     glm::vec3 v1( width, -width, 0.f);
     glm::vec3 v2( width,  width, 0.f);
@@ -80,7 +80,7 @@ void Display(GLFWwindow *window, GLuint shderProgram)
     for(auto& v : vertex)
     {
         glm::vec4 clip = matrix_project * matrix_view * matrix_model * glm::vec4(v, 1.f);//裁剪坐标
-        glm::vec3 ndc = glm::vec3(clip.x / clip.w, clip.y / clip.w, clip.y / clip.w);//设备坐标
+        glm::vec3 ndc = glm::vec3(clip.x / clip.w, clip.y / clip.w, clip.z / clip.w);//设备坐标
         glm::vec3 screen = matrix_view_port * glm::vec4(ndc, 1.f);//屏幕坐标
         screenCoord.emplace_back(screen);
     }
@@ -98,7 +98,7 @@ void Display(GLFWwindow *window, GLuint shderProgram)
 glm::mat4 MakeModelMatrix()
 {
     glm::mat4 matrix = glm::mat4(1.f);
-    matrix = /*glm::mat4(1.f);*/glm::rotate(matrix, -glm::radians(70.f), glm::vec3(1.f, 0.f, 0.f));
+//    matrix = glm::rotate(matrix, -glm::radians(70.f), glm::vec3(1.f, 0.f, 0.f));
     return matrix;
 }
 glm::mat4 MakeViewMatrix()
