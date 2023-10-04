@@ -62,34 +62,35 @@ void Display(GLFWwindow *window, GLuint shderProgram)
     glm::mat4 matrix_model = MakeModelMatrix();
     glm::mat4 matrix_view = MakeViewMatrix();
     glm::mat4 matrix_project = MakePerspectiveProjectMatrix(30.f, 0.1f, 1000.f);
-    glm::mat4 matrix_project_world = MakeViewPortMatrix(view_port_x, view_port_y, view_port_w, view_port_h) * matrix_project * matrix_view * matrix_model;
-
+    glm::mat4 matrix_view_port = MakeViewPortMatrix(view_port_x, view_port_y, view_port_w, view_port_h);
+    //设置屏幕坐标系
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_view"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
     glm::mat4 matrix_screen = glm::ortho(0.f, 0.f + window_width, 0.f + window_heigth, 0.f, -1.f, 1.f);
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_project"), 1, GL_FALSE, glm::value_ptr(matrix_screen));
-
+    //矩形框
     constexpr float width = 26.79492f - 2.f;
     glm::vec3 v0(-width, -width, 0.f);
     glm::vec3 v1( width, -width, 0.f);
     glm::vec3 v2( width,  width, 0.f);
     glm::vec3 v3(-width,  width, 0.f);
-    std::vector<glm::vec3> vertex = {v0, v1, v2, v0, v2, v3};
-
-    std::vector<glm::vec3> vertexScreen;
+    std::vector<glm::vec3> vertex = {v0, v1, v2, v3};
+    //计算屏幕坐标
+    std::vector<glm::vec3> screenCoord;
     for(auto& v : vertex)
     {
-        glm::vec4 v_screen_clip = matrix_project_world * glm::vec4(v, 1.f);
-        glm::vec3 v_screen = glm::vec3(v_screen_clip.x / v_screen_clip.w, v_screen_clip.y / v_screen_clip.w, v_screen_clip.z / v_screen_clip.w);
-        vertexScreen.emplace_back(v_screen);
+        glm::vec4 clip = matrix_project * matrix_view * matrix_model * glm::vec4(v, 1.f);//裁剪坐标
+        glm::vec3 ndc = glm::vec3(clip.x / clip.w, clip.y / clip.w, clip.y / clip.w);//设备坐标
+        glm::vec3 screen = matrix_view_port * glm::vec4(ndc, 1.f);//屏幕坐标
+        screenCoord.emplace_back(screen);
     }
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertexScreen.size() * sizeof(decltype(vertexScreen)::value_type), vertexScreen.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, screenCoord.size() * sizeof(decltype(screenCoord)::value_type), screenCoord.data(), GL_DYNAMIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
-    glDrawArrays(GL_LINE_LOOP, 0, vertexScreen.size());
+    glDrawArrays(GL_LINE_LOOP, 0, screenCoord.size());
     glDisableVertexAttribArray(0);
     glDeleteBuffers(1, &vbo);
 }
