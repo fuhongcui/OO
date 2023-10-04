@@ -1,5 +1,6 @@
 #include <cstring>
 #include <cmath>
+#include <vector>
 #include <memory>
 #include <iostream>
 #include <glad/glad.h>
@@ -7,13 +8,26 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
 
+constexpr float window_width = 1200.f;
+constexpr float window_heigth = 600.f;
+
+constexpr float view_port_x = 0;
+constexpr float view_port_y = 0;
+constexpr float view_port_w = window_width;
+constexpr float view_port_h = window_heigth;
 
 bool InitWindow(GLFWwindow*& window);
 bool InitShader(GLuint& shderProgram);
-void MakeMatrix(GLFWwindow* window, glm::mat4& matrix_model, glm::mat4& matrix_view, glm::mat4& matrix_project);
-void MakeRenderData(GLuint& dataVBO);
-void Display(GLFWwindow* window, GLuint shderProgram, GLuint dataVBO);
+void Display(GLFWwindow* window, GLuint shderProgram);
+
+glm::mat4 MakeModelMatrix();
+glm::mat4 MakeViewMatrix();
+glm::mat4 MakePerspectiveProjectMatrix(float fov, float n, float f);
+glm::mat4 MakeOrthographicProjectMatrix(float l, float r, float b, float t, float n, float f);
+glm::mat4 MakeViewPortMatrix(float x, float y, float w, float h);
+
 int main(int argc, char* agrv[])
 {
     GLFWwindow* window = nullptr;
@@ -29,13 +43,11 @@ int main(int argc, char* agrv[])
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
-    GLuint dataVBO = 0;
-    MakeRenderData(dataVBO);
     while(!glfwWindowShouldClose(window))
     {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        Display(window, shderProgram, dataVBO);;
+        Display(window, shderProgram);;
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -43,60 +55,134 @@ int main(int argc, char* agrv[])
     return 0;
 }
 
-void Display(GLFWwindow *window, GLuint shderProgram, GLuint dataVBO)
+void Display(GLFWwindow *window, GLuint shderProgram)
 {
     glUseProgram(shderProgram);
-    glm::mat4 matrix_model(1.f);
-    glm::mat4 matrix_view(1.f);
-    glm::mat4 matrix_project(1.f);
-    MakeMatrix(window, matrix_model, matrix_view, matrix_project);
-    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_model"), 1, GL_FALSE, glm::value_ptr(matrix_model));
-    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_view"), 1, GL_FALSE, glm::value_ptr(matrix_view));
-    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_project"), 1, GL_FALSE, glm::value_ptr(matrix_project));
 
-    glBindBuffer(GL_ARRAY_BUFFER, dataVBO);
+    glm::mat4 matrix_model = MakeModelMatrix();
+    glm::mat4 matrix_view = MakeViewMatrix();
+    glm::mat4 matrix_project = MakePerspectiveProjectMatrix(30.f, 0.1f, 1000.f);
+    glm::mat4 matrix_project_world = MakeViewPortMatrix(view_port_x, view_port_y, view_port_w, view_port_h) * matrix_project * matrix_view * matrix_model;
+
+    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
+    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_view"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
+    glm::mat4 matrix_screen = glm::ortho(0.f, 0.f + window_width, 0.f + window_heigth, 0.f, -1.f, 1.f);
+    glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_project"), 1, GL_FALSE, glm::value_ptr(matrix_screen));
+
+    constexpr float width = 26.79492f - 2.f;
+    glm::vec3 v0(-width, -width, 0.f);
+    glm::vec3 v1( width, -width, 0.f);
+    glm::vec3 v2( width,  width, 0.f);
+    glm::vec3 v3(-width,  width, 0.f);
+    std::vector<glm::vec3> vertex = {v0, v1, v2, v0, v2, v3};
+
+    std::vector<glm::vec3> vertexScreen;
+    for(auto& v : vertex)
+    {
+        glm::vec4 v_screen_clip = matrix_project_world * glm::vec4(v, 1.f);
+        glm::vec3 v_screen = glm::vec3(v_screen_clip.x / v_screen_clip.w, v_screen_clip.y / v_screen_clip.w, v_screen_clip.z / v_screen_clip.w);
+        vertexScreen.emplace_back(v_screen);
+    }
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertexScreen.size() * sizeof(decltype(vertexScreen)::value_type), vertexScreen.data(), GL_DYNAMIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_LINE_LOOP, 0, vertexScreen.size());
+    glDisableVertexAttribArray(0);
+    glDeleteBuffers(1, &vbo);
 }
 
-void MakeMatrix(GLFWwindow* window, glm::mat4& matrix_model, glm::mat4& matrix_view, glm::mat4& matrix_project)
+glm::mat4 MakeModelMatrix()
 {
-//    matrix_model = glm::rotate(matrix_model, glm::radians(-75.f), glm::vec3(1.f, 0.f, 0.f));
-    matrix_view = glm::translate(matrix_view, glm::vec3(0.f, 0.f, -201.f));
-    int windowWidth = 0;
-    int windowheight = 0;
-    glfwGetFramebufferSize(window, &windowWidth, &windowheight);
-    float aspect = (float)windowWidth / (float)windowheight;
-    matrix_project = glm::perspective(float(std::atan(0.5) * 2.f), aspect, 0.1f, 1000.0f);
-
+    glm::mat4 matrix = glm::mat4(1.f);
+    matrix = /*glm::mat4(1.f);*/glm::rotate(matrix, -glm::radians(70.f), glm::vec3(1.f, 0.f, 0.f));
+    return matrix;
 }
-void MakeRenderData(GLuint& dataVBO)
+glm::mat4 MakeViewMatrix()
 {
-    float length = 100.f;
-    float vertexPositions[] = {
-                               -100.f, -length, 0.f, 100.f, -length, 0.f, 100.f, length, 0.f,
-                                -100.f, -length, 0.f, 100.f, length, 0.f, -100.f, length, 0.f
-    };
-    glGenBuffers(1, &dataVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, dataVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions, GL_STATIC_DRAW);
+    glm::mat4 matrix = glm::mat4(1.f);
+    matrix = glm::translate(matrix, glm::vec3(0.f, 0.f, -100.f));
+    return matrix;
 }
 
+glm::mat4 MakePerspectiveProjectMatrix(float fov, float n, float f)
+{
+    /*
+    ---------------------------------------------------------------------------------------------------------
+    |    2 * n / (r - l)    |     0                   |    (r + l) / (r - l)     |  0                       |
+    ---------------------------------------------------------------------------------------------------------
+    |    0                  |     2 * n / (t - b)     |    (t + b) / (t - b)     |  0                       |
+    ---------------------------------------------------------------------------------------------------------
+    |    0                  |     0                   |    -(f + n) / (f - n)    |  -2 * f * n / (f - n)    |
+    ---------------------------------------------------------------------------------------------------------
+    |    0                  |     0                   |    -1                    |  0                       |
+    ---------------------------------------------------------------------------------------------------------
+    */
+    float tanHalfFovy = std::tan(glm::radians(fov / 2.f));
+    float aspect = window_width / window_heigth;
+    float t = n * tanHalfFovy;
+    float b = -t;
+    float r = t * aspect;
+    float l = -r;
+    glm::mat4 matrix = glm::mat4(0.f);
+    matrix[0][0] = 2 * n / (r - l);
+    matrix[1][1] = 2 * n / (t - b);
+    matrix[2][0] = (r + l) / (r - l);
+    matrix[2][1] = (t + b) / (t - b);
+    matrix[2][2] = -(f + n) / (f - n);
+    matrix[2][3] = -1;
+    matrix[3][2] = -2 * f * n / (f - n);
+    return matrix;
+}
+
+glm::mat4 MakeOrthographicProjectMatrix(float l, float r, float b, float t, float n, float f)
+{
+    /*
+    ---------------------------------------------------------------------------------------------------------
+    |    2 / (r - l)    |     0             |    0              |           -(r + l) / (r -l)               |
+    ---------------------------------------------------------------------------------------------------------
+    |    0              |     2 / (t - b)   |    0              |           -(t + b) / (t - b)              |
+    ---------------------------------------------------------------------------------------------------------
+    |    0              |     0             |    -2 / (f - n)   |           -(f + n) / (f - n)              |
+    ---------------------------------------------------------------------------------------------------------
+    |    0              |     0             |    0              |           1                               |
+    ---------------------------------------------------------------------------------------------------------
+    */
+    glm::mat4 matrix = glm::mat4(0.f);
+    return matrix;
+}
+
+glm::mat4 MakeViewPortMatrix(float x, float y, float w, float h)
+{
+    /*
+    -----------------------------------------------------------------------------
+    |    w / 2      |     0             |    0              |  w / 2 + x        |
+    -----------------------------------------------------------------------------
+    |    0          |     -h / 2         |    0              |  h / 2 + y        |
+    -----------------------------------------------------------------------------
+    |    0          |     0             |    1              |  0                |
+    -----------------------------------------------------------------------------
+    |    0          |     0             |    0              |  1                |
+    -----------------------------------------------------------------------------
+    */
+    glm::mat4 matrix = glm::mat4(1.f);
+    matrix[0][0] = window_width / 2;
+    matrix[1][1] = -window_heigth / 2;
+    matrix[3][0] = window_width / 2 + view_port_x;
+    matrix[3][1] = window_heigth / 2 + view_port_y;
+    return matrix;
+}
 
 bool InitWindow(GLFWwindow*& window)
 {
-    auto windowSizeChangeCallback = [](GLFWwindow* window, int w, int h)
-    {
-        glViewport(0, 0, w, h);
-    };
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    window = glfwCreateWindow(800, 800, "HAHA", nullptr, nullptr);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    window = glfwCreateWindow(window_width, window_heigth, "HAHA", nullptr, nullptr);
     if (window == nullptr)
     {
         glfwTerminate();
@@ -108,7 +194,7 @@ bool InitWindow(GLFWwindow*& window)
         glfwTerminate();
         return false;
     }
-    glfwSetWindowSizeCallback(window, windowSizeChangeCallback);
+    glViewport(view_port_x, view_port_y, window_width, window_heigth);
     return true;
 }
 
