@@ -66,7 +66,7 @@ void Display(GLFWwindow *window, GLuint shderProgram)
     //设置屏幕坐标系
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_view"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
-    glm::mat4 matrix_screen = glm::ortho(0.f, 0.f + window_width, 0.f + window_heigth, 0.f, -1.f, 1.f);
+    glm::mat4 matrix_screen = MakeOrthographicProjectMatrix(0.f, 0.f + window_width, 0.f + window_heigth, 0.f, -1.f, 1.f);
     glUniformMatrix4fv(glGetUniformLocation(shderProgram, "matrix_project"), 1, GL_FALSE, glm::value_ptr(matrix_screen));
     //矩形框
     constexpr float width = 26.79492f;
@@ -152,6 +152,13 @@ glm::mat4 MakeOrthographicProjectMatrix(float l, float r, float b, float t, floa
     ---------------------------------------------------------------------------------------------------------
     */
     glm::mat4 matrix = glm::mat4(0.f);
+    matrix[0][0] = 2 / (r - l);
+    matrix[1][1] = 2 / (t - b);
+    matrix[2][2] = -2 / (f - n);
+    matrix[3][0] = -(r + l) / (r -l);
+    matrix[3][1] = -(t + b) / (t - b);
+    matrix[3][2] = -(f + n) / (f - n);
+    matrix[3][3] = 1;
     return matrix;
 }
 
