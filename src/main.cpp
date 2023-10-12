@@ -84,6 +84,15 @@ void Display(GLFWwindow *window, GLuint shderProgram)
         glm::vec3 screen = matrix_view_port * glm::vec4(ndc, 1.f);//屏幕坐标
         screenCoord.emplace_back(screen);
     }
+    {
+        glm::mat4 invertWorld = glm::inverse(matrix_view_port * matrix_project * matrix_view * matrix_model);
+        glm::vec4 v(0, 0, -1.f, 1.f);
+        glm::vec4 w = invertWorld * v;
+
+        int i = 0;
+        ++i;
+
+    }
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
